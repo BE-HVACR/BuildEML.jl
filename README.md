@@ -31,6 +31,12 @@ including:
 - `examples/simplehouse0to6_verification`
 - `examples/simplehouse_standalone_verification`
 
+## Citation
+
+If BuildEML is helpful in your research, please consider citing this
+repository. A related paper citation will be added here once the associated
+manuscript is published.
+
 ## Julia Version
 
 The package currently targets Julia `1.12`.
