@@ -27,13 +27,13 @@ The package currently includes the following main modules:
 - `Media`
   Air and water connectors together with supporting thermophysical property functions.
 - `FundamentalComponents`
-  Basic boundary, sensing, and mixing-volume components for air and water systems.
+  Basic boundary, and mixing-volume components for air and water systems.
 - `HVACComponents`
   Movers, actuators, pressure-drop elements, heat exchangers, and thermal source models.
 - `BuildingComponents`
   Assembled single-zone SimpleHouse building models.
 - `Disturbances`
-  Weather-file handling, weather buses, and schedule generation/read-in utilities.
+  Weather-file handling, TMYx files, and schedule (occupant/interal heat gain) generation.
 
 ## Examples
 
