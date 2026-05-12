@@ -7,6 +7,11 @@ BuildEML is a Julia package for equation-based building/HVAC system energy model
 
 This repository is an early public release of the package and is currently under development.
 
+At its current stage, BuildEML is a prototype-oriented package. Some of its
+current functionality is inspired by the Modelica Buildings Library (MBL)
+SimpleHouse examples, which are also used here as verification references,
+though the implementation here is not a one-to-one replication.
+
 ## Installation
 
 You can install it from GitHub.
