@@ -8,6 +8,11 @@ using DataFrames
 include(joinpath(@__DIR__, "helpers.jl"))
 include(joinpath(@__DIR__, "0_model.jl"))
 
+# Note:
+# `SimpleHouse0` itself only uses `TDryBul`.
+# `HGloHor` is compared here as a representative weather-bus sanity check.
+# The standalone `SimpleHouse` example uses `HGloHor`, whereas `SimpleHouse2`-`SimpleHouse6` use `HDirNor`.
+
 @mtkbuild sys = SimpleHouse0(df_weather = df_weather)
 
 csv_path = joinpath(@__DIR__, "MBLresult_simplehouse0.csv")
