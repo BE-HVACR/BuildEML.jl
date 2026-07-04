@@ -81,7 +81,7 @@ end
 p_top = plot(
     t_plot, df_cmp.Tzone_sim_C;
     label = @sprintf("This work (RMSE: %.2f °C, MBE: %.2f °C)", rmse_Tzone, mbe_Tzone),
-    title = "Zone air temperature (SimpleHouse)",
+    title = "Zone air temperature (SimpleHouse)", # "SimpleHouse, complete",
     ylabel = "Temperature [°C]",
     xlims = (0, t_end_plt),
     xticks = (xtk, fill("", length(xtk))),

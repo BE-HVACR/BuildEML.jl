@@ -56,21 +56,34 @@ nrow(df_cmp) == 0 && error("No matched timestamps between `sol.t` and Modelica C
 rmse_tzone = sqrt(mean((df_cmp.Tzone_sim_C .- df_cmp.Tzone_mbl_C) .^ 2))
 mbe_tzone  = mean(df_cmp.Tzone_sim_C .- df_cmp.Tzone_mbl_C)
 
-t_plot    = df_cmp.time_s ./ 3600.0
-t_end_plt = 8760.0
-xtk       = collect(range(0, t_end_plt, length = 7))
-xtk_labels = string.(round.(Int, xtk))
+time_s = Float64.(df_cmp.time_s)
+t_max = time_s[end]
+use_hours = t_max > 1e6
+
+if use_hours
+    t_plot = time_s ./ 3600.0
+    t_end_plt = t_max / 3600.0
+    xtk = collect(range(0, t_end_plt, length = 7))
+    xtk_labels = string.(round.(Int, xtk))
+    xlabel_str = "Time [hr]"
+else
+    t_plot = time_s
+    t_end_plt = t_max
+    xtk = collect(range(0, t_end_plt, length = 6))
+    xtk_labels = ["0", "2e5", "4e5", "6e5", "8e5", "1e6"]
+    xlabel_str = "Time [s]"
+end
 
 p_top = plot(
     t_plot, df_cmp.Tzone_sim_C;
     label  = @sprintf("This work (RMSE: %.2f °C, MBE: %.2f °C)", rmse_tzone, mbe_tzone),
-    title  = "Zone air temperature (SimpleHouse, heating only)",
+    title  = "SimpleHouse, heating only",
     ylabel = "Temperature [°C]",
     xlims  = (0, t_end_plt),
     xticks = (xtk, fill("", length(xtk))),
     color  = :green,
     linewidth = 3,
-    legend = (0.4, 0.15),
+    legend = :topleft, # legend = (0.37, 0.15),
     background_color_legend = RGBA(1, 1, 1, 0.6),
 )
 plot!(p_top, t_plot, df_cmp.Tzone_mbl_C;
@@ -89,7 +102,7 @@ p_bot = plot(
     t_plot, abserr;
     label  = "Pointwise error",
     ylabel = "Error [°C]",
-    xlabel = "Time [hr]",
+    xlabel = xlabel_str,
     xlims  = (0, t_end_plt),
     xticks = (xtk, xtk_labels),
     color  = :lightgray,
