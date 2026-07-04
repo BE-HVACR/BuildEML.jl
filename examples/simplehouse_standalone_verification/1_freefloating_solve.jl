@@ -70,14 +70,14 @@ xtk_labels = string.(round.(Int, xtk))
 
 p_top = plot(
     t_plot, df_cmp.Tzone_sim_C;
-    label  = @sprintf("Tzone, this work (RMSE: %.2f °C, MBE: %.2f °C)", rmse_Tzone, mbe_Tzone),
-    title  = "Zone air temperature (SimpleHouse, free-floating)",
+    label  = "Tzone, this work",
+    title  = "SimpleHouse, free-floating",
     ylabel = "Temperature [°C]",
     xlims  = (0, t_end_plt),
     xticks = (xtk, fill("", length(xtk))),
     color  = :green,
     linewidth = 2,
-    legend = (0.25, 0.28),
+    legend = (0.5, 0.28),
     background_color_legend = RGBA(1, 1, 1, 0.6),
 )
 plot!(p_top, t_plot, df_cmp.Tzone_mbl_C;
@@ -87,7 +87,7 @@ plot!(p_top, t_plot, df_cmp.Tzone_mbl_C;
     linestyle = :dash,
 )
 plot!(p_top, t_plot, df_cmp.Tout_sim_C;
-    label     = @sprintf("Tout, this work (RMSE: %.2f °C, MBE: %.2f °C)", rmse_Tout, mbe_Tout),
+    label     = "Tout, this work",
     color     = :orange,
     linewidth = 2,
 )
