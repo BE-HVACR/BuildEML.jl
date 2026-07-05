@@ -3,14 +3,16 @@ using DataInterpolations
 
 
 """
-    WeatherBus(df; name, time_col, interp_method, radiation_time_shift_s)
+    WeatherBus(df; name, time_col, interp_method, use_constant_pressure, radiation_time_shift_s)
 
 Build a WeatherBus ODESystem from a processed weather DataFrame (e.g. from `ReadEPW`).
 Exposes thermo, radiation, and wind signals as `RealOutput` ports.
 
-`df` must contain: `:time` [s], `:TDryBul` [K], `:TDewPoi` [K], `:relHum` [-], `:pAtm` [Pa],
+`df` must contain: `:time` [s], `:TDryBul` [K], `:TDewPoi` [K], `:relHum` [-],
 `:TWetBul` [K], `:HumRat` [kg/kg_da], `:HGloHor/:HDifHor/:HDirNor/:HHorIR` [W/m²],
 `:albedo` [-], `:winDir` [rad], `:winSpe` [m/s].
+When `use_constant_pressure=true`, `pAtm` is fixed at 101325 Pa. Otherwise, `df`
+must contain `:pAtm` [Pa].
 
 Solar radiation outputs are time-shifted by `radiation_time_shift_s` (default 1800 s)
 to match Modelica ReaderTMY3 convention.
@@ -18,6 +20,7 @@ to match Modelica ReaderTMY3 convention.
 function WeatherBus(df::DataFrame; name::Symbol = :WeatherBus,
                                    time_col::Symbol = :time,
                                    interp_method = LinearInterpolation,
+                                   use_constant_pressure::Bool = true,
                                    radiation_time_shift_s::Real = 1800.0)
     # time axis
     time_data    = Float64.(df[!, time_col])
@@ -27,7 +30,7 @@ function WeatherBus(df::DataFrame; name::Symbol = :WeatherBus,
     TDryBul_data = Float64.(df[!, :TDryBul])
     TDewPoi_data = Float64.(df[!, :TDewPoi])
     relHum_data  = Float64.(df[!, :relHum])
-    pAtm_data    = Float64.(df[!, :pAtm])
+    pAtm_data    = use_constant_pressure ? fill(101325.0, length(time_data)) : Float64.(df[!, :pAtm])
     TWetBul_data = Float64.(df[!, :TWetBul])
     HumRat_data  = Float64.(df[!, :HumRat])
 
@@ -140,7 +143,8 @@ end
 
 
 """
-    WeatherBus(; name, df, time_col, interp_method, radiation_time_shift_s, kwargs...)
+    WeatherBus(; name, df, time_col, interp_method, use_constant_pressure,
+               radiation_time_shift_s, kwargs...)
 
 Keyword-friendly wrapper for MTK compatibility: `@named wea = WeatherBus(df_weather)`
 works after MTK rewrites the call to `WeatherBus(; name=:wea, df_weather=df_weather)`.
@@ -150,6 +154,7 @@ function WeatherBus(; name::Symbol = :WeatherBus,
                       time_col::Symbol = :time,
                       df::Union{Nothing,AbstractDataFrame} = nothing,
                       interp_method = LinearInterpolation,
+                      use_constant_pressure::Bool = true,
                       radiation_time_shift_s::Real = 1800.0,
                       kwargs...)
     df_ = df
@@ -171,5 +176,6 @@ function WeatherBus(; name::Symbol = :WeatherBus,
     end
 
     return WeatherBus(df_; name=name, time_col=time_col, interp_method=interp_method,
+                      use_constant_pressure=use_constant_pressure,
                       radiation_time_shift_s=radiation_time_shift_s)
 end
