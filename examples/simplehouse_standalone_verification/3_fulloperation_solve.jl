@@ -81,7 +81,7 @@ end
 p_top = plot(
     t_plot, df_cmp.Tzone_sim_C;
     label = @sprintf("This work (RMSE: %.2f °C, MBE: %.2f °C)", rmse_Tzone, mbe_Tzone),
-    title = "Zone air temperature (SimpleHouse)", # "SimpleHouse, complete",
+    title = "SimpleHouse, complete", # "Zone air temperature (SimpleHouse)",
     ylabel = "Temperature [°C]",
     xlims = (0, t_end_plt),
     xticks = (xtk, fill("", length(xtk))),
@@ -121,5 +121,127 @@ plot!(p_bot, t_plot, ma;
 )
 hline!(p_bot, [0.0]; color = :black, linestyle = :dot, linewidth = 1, label = "")
 
-plot(p_top, p_bot, layout = grid(2, 1, heights = [0.67, 0.33]), size = (600, 550),
+#=
+# The MBL SimpleHouse case does not expose heating/cooling source power for comparison.
+# This diagnostic plot shows only H/C source load, power, PLR, and control, excluding fan and pump energy.
+hvac_plot_mode = :all  # :all, :heating, or :cooling
+@assert hvac_plot_mode in (:all, :heating, :cooling) "hvac_plot_mode must be :all, :heating, or :cooling."
+
+p_cmp = plot(p_top, p_bot, layout = grid(2, 1, heights = [0.67, 0.33]), size = (600, 550),
     left_margin = 0mm, right_margin = 3mm)
+display(p_cmp)
+
+t_plot_sol = use_hours ? Float64.(sol.t) ./ 3600.0 : Float64.(sol.t)
+heating_power_W = sol[sys.loop_hea.heatingsrc_power.power.u]
+cooling_power_W = sol[sys.loop_cool.coolingsource.power.u]
+heating_load_W = sol[sys.loop_hea.hea.Qflow.u]
+cooling_load_W = sol[sys.loop_cool.coolingsource.Q_thermal.u]
+heating_capacity_W = 700.0
+heating_load_abs_W = max.(heating_load_W, 0.0)
+cooling_load_abs_W = max.(-cooling_load_W, 0.0)
+heating_plr = heating_load_abs_W ./ heating_capacity_W
+cooling_plr = sol[sys.loop_cool.coolingsource.yPL.u]
+heating_control = sol[sys.ctrller_hea.y]
+cooling_control = sol[sys.loop_cool.conDam.ctr_output.u]
+plot_heating = hvac_plot_mode in (:all, :heating)
+plot_cooling = hvac_plot_mode in (:all, :cooling)
+
+p_load = plot(;
+    title = "H/C thermal load",
+    ylabel = "Thermal load [W]",
+    xlims = (0, t_end_plt),
+    xticks = (xtk, fill("", length(xtk))),
+    legend = :topright,
+    background_color_legend = RGBA(1, 1, 1, 0.6),
+)
+if plot_heating
+    plot!(p_load, t_plot_sol, heating_load_abs_W;
+        label = "Heating",
+        color = :red,
+        linewidth = 2,
+    )
+end
+if plot_cooling
+    plot!(p_load, t_plot_sol, cooling_load_abs_W;
+        label = "Cooling",
+        color = :blue,
+        linewidth = 2,
+    )
+end
+
+p_power = plot(;
+    title = "H/C electric power",
+    ylabel = "Power [W]",
+    xlims = (0, t_end_plt),
+    xticks = (xtk, fill("", length(xtk))),
+    legend = :topright,
+    background_color_legend = RGBA(1, 1, 1, 0.6),
+)
+if plot_heating
+    plot!(p_power, t_plot_sol, heating_power_W;
+        label = "Heating",
+        color = :red,
+        linewidth = 2,
+    )
+end
+if plot_cooling
+    plot!(p_power, t_plot_sol, cooling_power_W;
+        label = "Cooling",
+        color = :blue,
+        linewidth = 2,
+    )
+end
+
+p_plr = plot(;
+    title = "H/C part-load ratio",
+    ylabel = "PLR [-]",
+    xlabel = xlabel_str,
+    xlims = (0, t_end_plt),
+    xticks = (xtk, xtk_labels),
+    legend = :topright,
+    background_color_legend = RGBA(1, 1, 1, 0.6),
+)
+if plot_heating
+    plot!(p_plr, t_plot_sol, heating_plr;
+        label = "Heating",
+        color = :red,
+        linewidth = 2,
+    )
+end
+if plot_cooling
+    plot!(p_plr, t_plot_sol, cooling_plr;
+        label = "Cooling",
+        color = :blue,
+        linewidth = 2,
+    )
+end
+hline!(p_plr, [0.0]; color = :black, linestyle = :dot, linewidth = 1, label = "")
+
+p_control = plot(;
+    title = "H/C control",
+    ylabel = "Control [-]",
+    xlabel = xlabel_str,
+    xlims = (0, t_end_plt),
+    xticks = (xtk, xtk_labels),
+    legend = :topright,
+    background_color_legend = RGBA(1, 1, 1, 0.6),
+)
+if plot_heating
+    plot!(p_control, t_plot_sol, heating_control;
+        label = "Heating",
+        color = :red,
+        linewidth = 2,
+    )
+end
+if plot_cooling
+    plot!(p_control, t_plot_sol, cooling_control;
+        label = "Cooling",
+        color = :blue,
+        linewidth = 2,
+    )
+end
+
+p_hvac = plot(p_load, p_power, p_plr, p_control, layout = grid(2, 2), size = (1000, 650),
+    left_margin = 3mm, right_margin = 3mm)
+display(p_hvac)
+=#
