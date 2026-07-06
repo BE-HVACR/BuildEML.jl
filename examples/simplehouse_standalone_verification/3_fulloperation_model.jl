@@ -38,7 +38,7 @@ include(joinpath(@__DIR__, "2_heatingonly_model.jl"))
             dp_nominal = dpAir_nominal
         )
         cooAir = AirSensibleCooler_T()
-        coolingsource = ASHP_LiftCOP_Power(T_hot_offset = 8.0, T_cold_offset = -2.0)
+        coolingsource = HPCooling_Power_TEva(QEva_flow_nominal = -800.0)
         conDam = LimPID(k = conDam_k, u_min = 0.25, u_max = 1.0)
         set_cool = Constant(k = Tset_cool)
         set_sup = Constant(k = Tsup_cool)
@@ -119,4 +119,3 @@ end
         totPower.u ~ loop_hea.totPower.u + loop_cool.totPower.u
     end
 end
-
