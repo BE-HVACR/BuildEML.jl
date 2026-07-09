@@ -82,7 +82,7 @@ function _build_airmixingvolume_n_system(;
                   (rho_p(p_mix) / p_mix) * D(p_mix)) ~ total_mflow
         )
         push!(eqs, (rho_p(p_mix) * Vp) * D(w_mix) ~ moisture_rhs)
-        push!(eqs, (rho_p(p_mix) * Vp) * cp_moistair_w(w_mix) * D(T_mix) ~ energy_rhs)
+        push!(eqs, (rho_p(p_mix) * Vp) * (cp_moistair_w(w_mix) * D(T_mix) + h_g(T_mix) * D(w_mix)) ~ energy_rhs)
     else
         push!(eqs, 0 ~ total_mflow)
         push!(eqs, 0 ~ moisture_rhs)
