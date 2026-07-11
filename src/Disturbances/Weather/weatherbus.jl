@@ -2,11 +2,33 @@ using ModelingToolkitStandardLibrary.Blocks
 using DataInterpolations
 
 
+function _right_periodic_pad(time_data::AbstractVector, y_data::AbstractVector, n_pad::Int)
+    n_pad <= 0 && return time_data, y_data
+    length(time_data) >= 2 || return time_data, y_data
+
+    dt = time_data[end] - time_data[end - 1]
+    dt > 0 || error("WeatherBus: time data must be strictly increasing for periodic padding.")
+
+    # ReadEPW-aligned weather data has a t=0 anchor row, so use row 2 as
+    # the first actual next-year sample when padding the right boundary.
+    nper = length(time_data)
+    pad_idx = [mod1(j + 1, nper) for j in 1:n_pad]
+    time_pad = [time_data[end] + j * dt for j in 1:n_pad]
+
+    return vcat(time_data, time_pad), vcat(y_data, y_data[pad_idx])
+end
+
+
 """
-    WeatherBus(df; name, time_col, interp_method, use_constant_pressure, radiation_time_shift_s)
+    WeatherBus(df; name, time_col, interp_method, use_constant_pressure,
+               radiation_time_shift_s, periodic_padding_steps)
 
 Build a WeatherBus ODESystem from a processed weather DataFrame (e.g. from `ReadEPW`).
 Exposes thermo, radiation, and wind signals as `RealOutput` ports.
+Uses `AkimaInterpolation` by default; pass `interp_method` to override.
+With Akima interpolation, `periodic_padding_steps=1` appends one next-year anchor
+to reduce right-boundary artifacts. This approximates the Modelica Buildings
+last-two-point boundary extrapolation more simply.
 
 `df` must contain: `:time` [s], `:TDryBul` [K], `:TDewPoi` [K], `:relHum` [-],
 `:TWetBul` [K], `:HumRat` [kg/kg_da], `:HGloHor/:HDifHor/:HDirNor/:HHorIR` [W/m²],
@@ -19,9 +41,12 @@ to match Modelica ReaderTMY3 convention.
 """
 function WeatherBus(df::DataFrame; name::Symbol = :WeatherBus,
                                    time_col::Symbol = :time,
-                                   interp_method = LinearInterpolation,
+                                   interp_method = AkimaInterpolation,
                                    use_constant_pressure::Bool = true,
-                                   radiation_time_shift_s::Real = 1800.0)
+                                   radiation_time_shift_s::Real = 1800.0,
+                                   periodic_padding_steps::Int = 1)
+    periodic_padding_steps >= 0 || error("WeatherBus: periodic_padding_steps must be nonnegative.")
+
     # time axis
     time_data    = Float64.(df[!, time_col])
     shift_s = Float64(radiation_time_shift_s)
@@ -45,40 +70,45 @@ function WeatherBus(df::DataFrame; name::Symbol = :WeatherBus,
     winDir_data  = Float64.(df[!, :winDir])
     winSpe_data  = Float64.(df[!, :winSpe])
 
-    # Extend radiation data by kext steps to avoid right-end extrapolation during the time-shift.
-    time_data_rad = time_data
-    HGloHor_data_rad = HGloHor_data
-    HDifHor_data_rad = HDifHor_data
-    HDirNor_data_rad = HDirNor_data
+    time_data_pad, TDryBul_data = _right_periodic_pad(time_data, TDryBul_data, periodic_padding_steps)
+    _, TDewPoi_data = _right_periodic_pad(time_data, TDewPoi_data, periodic_padding_steps)
+    _, relHum_data  = _right_periodic_pad(time_data, relHum_data,  periodic_padding_steps)
+    _, pAtm_data    = _right_periodic_pad(time_data, pAtm_data,    periodic_padding_steps)
+    _, TWetBul_data = _right_periodic_pad(time_data, TWetBul_data, periodic_padding_steps)
+    _, HumRat_data  = _right_periodic_pad(time_data, HumRat_data,  periodic_padding_steps)
+    _, HHorIR_data  = _right_periodic_pad(time_data, HHorIR_data,  periodic_padding_steps)
+    _, albedo_data  = _right_periodic_pad(time_data, albedo_data,  periodic_padding_steps)
+    _, winDir_data  = _right_periodic_pad(time_data, winDir_data,  periodic_padding_steps)
+    _, winSpe_data  = _right_periodic_pad(time_data, winSpe_data,  periodic_padding_steps)
 
+    # Add enough right padding to cover the solar-radiation time shift and
+    # retain the Akima endpoint stabilization used by the other weather signals.
+    rad_padding_steps = periodic_padding_steps
     if shift_s > 0 && length(time_data) >= 2
         dt = time_data[2] - time_data[1]
-        kext = max(1, ceil(Int, shift_s / dt))
-        nper = length(time_data)
-
-        time_data_rad = vcat(time_data, [time_data[end] + j * dt for j in 1:kext])
-        HGloHor_data_rad = vcat(HGloHor_data, [HGloHor_data[mod1(j + 1, nper)] for j in 1:kext])
-        HDifHor_data_rad = vcat(HDifHor_data, [HDifHor_data[mod1(j + 1, nper)] for j in 1:kext])
-        HDirNor_data_rad = vcat(HDirNor_data, [HDirNor_data[mod1(j + 1, nper)] for j in 1:kext])
+        rad_padding_steps += max(1, ceil(Int, shift_s / dt))
     end
 
+    time_data_rad, HGloHor_data_rad = _right_periodic_pad(time_data, HGloHor_data, rad_padding_steps)
+    _, HDifHor_data_rad = _right_periodic_pad(time_data, HDifHor_data, rad_padding_steps)
+    _, HDirNor_data_rad = _right_periodic_pad(time_data, HDirNor_data, rad_padding_steps)
     time_data_rad = time_data_rad .- shift_s
 
     @named clk          = ContinuousClock()
 
-    @named itp_TDryBul  = Interpolation(interp_method, TDryBul_data, time_data)
-    @named itp_TDewPoi  = Interpolation(interp_method, TDewPoi_data, time_data)
-    @named itp_relHum   = Interpolation(interp_method, relHum_data,  time_data)
-    @named itp_pAtm     = Interpolation(interp_method, pAtm_data,    time_data)
-    @named itp_TWetBul  = Interpolation(interp_method, TWetBul_data, time_data)
-    @named itp_HumRat   = Interpolation(interp_method, HumRat_data,  time_data)
+    @named itp_TDryBul  = Interpolation(interp_method, TDryBul_data, time_data_pad)
+    @named itp_TDewPoi  = Interpolation(interp_method, TDewPoi_data, time_data_pad)
+    @named itp_relHum   = Interpolation(interp_method, relHum_data,  time_data_pad)
+    @named itp_pAtm     = Interpolation(interp_method, pAtm_data,    time_data_pad)
+    @named itp_TWetBul  = Interpolation(interp_method, TWetBul_data, time_data_pad)
+    @named itp_HumRat   = Interpolation(interp_method, HumRat_data,  time_data_pad)
     @named itp_HGloHor  = Interpolation(interp_method, HGloHor_data_rad, time_data_rad)
     @named itp_HDifHor  = Interpolation(interp_method, HDifHor_data_rad, time_data_rad)
     @named itp_HDirNor  = Interpolation(interp_method, HDirNor_data_rad, time_data_rad)
-    @named itp_HHorIR   = Interpolation(interp_method, HHorIR_data,  time_data)
-    @named itp_albedo   = Interpolation(interp_method, albedo_data,  time_data)
-    @named itp_winDir   = Interpolation(interp_method, winDir_data,  time_data)
-    @named itp_winSpe   = Interpolation(interp_method, winSpe_data,  time_data)
+    @named itp_HHorIR   = Interpolation(interp_method, HHorIR_data,  time_data_pad)
+    @named itp_albedo   = Interpolation(interp_method, albedo_data,  time_data_pad)
+    @named itp_winDir   = Interpolation(interp_method, winDir_data,  time_data_pad)
+    @named itp_winSpe   = Interpolation(interp_method, winSpe_data,  time_data_pad)
 
     @named TDryBul = RealOutput()
     @named TDewPoi = RealOutput()
@@ -144,7 +174,7 @@ end
 
 """
     WeatherBus(; name, df, time_col, interp_method, use_constant_pressure,
-               radiation_time_shift_s, kwargs...)
+               radiation_time_shift_s, periodic_padding_steps, kwargs...)
 
 Keyword-friendly wrapper for MTK compatibility: `@named wea = WeatherBus(df_weather)`
 works after MTK rewrites the call to `WeatherBus(; name=:wea, df_weather=df_weather)`.
@@ -153,9 +183,10 @@ Picks the DataFrame from `df` keyword or, if absent, the first DataFrame-valued 
 function WeatherBus(; name::Symbol = :WeatherBus,
                       time_col::Symbol = :time,
                       df::Union{Nothing,AbstractDataFrame} = nothing,
-                      interp_method = LinearInterpolation,
+                      interp_method = AkimaInterpolation,
                       use_constant_pressure::Bool = true,
                       radiation_time_shift_s::Real = 1800.0,
+                      periodic_padding_steps::Int = 1,
                       kwargs...)
     df_ = df
 
@@ -177,5 +208,6 @@ function WeatherBus(; name::Symbol = :WeatherBus,
 
     return WeatherBus(df_; name=name, time_col=time_col, interp_method=interp_method,
                       use_constant_pressure=use_constant_pressure,
-                      radiation_time_shift_s=radiation_time_shift_s)
+                      radiation_time_shift_s=radiation_time_shift_s,
+                      periodic_padding_steps=periodic_padding_steps)
 end
