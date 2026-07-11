@@ -119,17 +119,18 @@ plot!(p_bot, t_plot, ma;
     color = :red,
     linewidth = 2,
 )
-hline!(p_bot, [0.0]; color = :black, linestyle = :dot, linewidth = 1, label = "")
+hline!(p_bot, [0.0]; color = :black, linestyle = :dot, linewidth = 1, label = "");
+
+
+p_cmp = plot(p_top, p_bot, layout = grid(2, 1, heights = [0.67, 0.33]), size = (600, 550),
+    left_margin = 0mm, right_margin = 3mm)
+display(p_cmp)
 
 #=
 # The MBL SimpleHouse case does not expose heating/cooling source power for comparison.
 # This diagnostic plot shows only H/C source load, power, PLR, and control, excluding fan and pump energy.
 hvac_plot_mode = :all  # :all, :heating, or :cooling
 @assert hvac_plot_mode in (:all, :heating, :cooling) "hvac_plot_mode must be :all, :heating, or :cooling."
-
-p_cmp = plot(p_top, p_bot, layout = grid(2, 1, heights = [0.67, 0.33]), size = (600, 550),
-    left_margin = 0mm, right_margin = 3mm)
-display(p_cmp)
 
 t_plot_sol = use_hours ? Float64.(sol.t) ./ 3600.0 : Float64.(sol.t)
 heating_power_W = sol[sys.loop_hea.heatingsrc_power.power.u]
