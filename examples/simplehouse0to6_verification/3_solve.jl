@@ -92,8 +92,9 @@ p_wal_bot = plot(
     background_color_legend = RGBA(1, 1, 1, 0.6),
 )
 
-plot(p_wal_top, p_wal_bot, layout = grid(2, 1, heights = [0.67, 0.33]), size = (600, 550),
+fig_wal = plot(p_wal_top, p_wal_bot, layout = grid(2, 1, heights = [0.67, 0.33]), size = (600, 550),
     left_margin = 0mm, right_margin = 3mm)
+display(fig_wal)
 
 # ── Plot: zone temperature ─────────────────────────────────────────────────────
 p_zon_top = plot(
@@ -130,5 +131,6 @@ p_zon_bot = plot(
     background_color_legend = RGBA(1, 1, 1, 0.6),
 )
 
-plot(p_zon_top, p_zon_bot, layout = grid(2, 1, heights = [0.67, 0.33]), size = (600, 550),
+fig_zon = plot(p_zon_top, p_zon_bot, layout = grid(2, 1, heights = [0.67, 0.33]), size = (600, 550),
     left_margin = 0mm, right_margin = 3mm)
+display(fig_zon)

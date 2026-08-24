@@ -126,6 +126,31 @@ p_cmp = plot(p_top, p_bot, layout = grid(2, 1, heights = [0.67, 0.33]), size = (
     left_margin = 0mm, right_margin = 3mm)
 display(p_cmp)
 
+zoom_hr = (1965.0, 1977.0)
+zi = findall(t -> zoom_hr[1] <= t <= zoom_hr[2], t_plot)
+
+p_zoom = plot(
+    t_plot[zi], df_cmp.Tzone_sim_C[zi];
+    label                   = "This work",
+    title                   = "12 h detail (SimpleHouse)",
+    xlabel                  = "Time [hr]",
+    ylabel                  = "Temperature [°C]",
+    color                   = :green,
+    linewidth               = 3,
+    legend                  = :topright,
+    background_color_legend = RGBA(1, 1, 1, 0.6),
+    size                    = (600, 300),
+    left_margin             = 3mm,
+    right_margin            = 3mm,
+)
+plot!(p_zoom, t_plot[zi], df_cmp.Tzone_mbl_C[zi];
+    label     = "MBL",
+    color     = :blue,
+    linewidth = 1.5,
+    linestyle = :dash,
+)
+display(p_zoom)
+
 #=
 # The MBL SimpleHouse case does not expose heating/cooling source power for comparison.
 # This diagnostic plot shows only H/C source load, power, PLR, and control, excluding fan and pump energy.

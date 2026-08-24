@@ -129,5 +129,6 @@ p_bot = plot(
     background_color_legend = RGBA(1, 1, 1, 0.6),
 )
 
-plot(p_top, p_mid, p_bot, layout = grid(3, 1, heights = [0.5, 0.25, 0.25]), size = (600, 750),
+fig = plot(p_top, p_mid, p_bot, layout = grid(3, 1, heights = [0.5, 0.25, 0.25]), size = (600, 750),
     left_margin = 5mm, right_margin = 3mm)
+display(fig)

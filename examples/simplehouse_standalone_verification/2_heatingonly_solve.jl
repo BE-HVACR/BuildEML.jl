@@ -117,5 +117,6 @@ plot!(p_bot, t_plot, ma;
 )
 hline!(p_bot, [0.0]; color = :black, linestyle = :dot, linewidth = 1, label = "")
 
-plot(p_top, p_bot, layout = grid(2, 1, heights = [0.67, 0.33]), size = (600, 550),
+fig = plot(p_top, p_bot, layout = grid(2, 1, heights = [0.67, 0.33]), size = (600, 550),
     left_margin = 0mm, right_margin = 3mm)
+display(fig)

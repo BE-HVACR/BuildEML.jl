@@ -10,12 +10,15 @@ df_weather = ReadEPW(epw_path)
     end
 
     @components begin
-        weaBus = WeatherBus(df_weather, interp_method = DataInterpolations.AkimaInterpolation)
-        TOut   = PrescribedTemperature()
+        weaBus  = WeatherBus(df_weather, interp_method = AkimaSpline, periodic_padding_steps = 0)
+        TOut    = PrescribedTemperature()
+        # HGloHor output probe
+        gaiHGlo = Gain(k = 1.0)
     end
 
     @equations begin
         connect(weaBus.TDryBul, TOut.T)
+        connect(weaBus.HGloHor, gaiHGlo.input)
     end
 end
 

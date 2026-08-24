@@ -195,8 +195,9 @@ plot!(p_bot, t_plot, ma;
 )
 hline!(p_bot, [0.0]; color = :black, linestyle = :dot, linewidth = 1, label = "")
 
-display(plot(p_top, p_bot, layout = grid(2, 1, heights = [0.67, 0.33]), size = (600, 550),
-    left_margin = 0mm, right_margin = 3mm))
+fig_zon = plot(p_top, p_bot, layout = grid(2, 1, heights = [0.67, 0.33]), size = (600, 550),
+    left_margin = 0mm, right_margin = 3mm)
+display(fig_zon)
 
 rmse_dam = sqrt(mean((df_cmp.dam_sim .- df_cmp.dam_mbl) .^ 2))
 mbe_dam  = mean(df_cmp.dam_sim .- df_cmp.dam_mbl)
@@ -233,6 +234,7 @@ p_dam_bot = plot(
     background_color_legend = RGBA(1, 1, 1, 0.6),
 )
 
-plot(p_dam_top, p_dam_bot, layout = grid(2, 1, heights = [0.67, 0.33]), size = (600, 550),
+fig_dam = plot(p_dam_top, p_dam_bot, layout = grid(2, 1, heights = [0.67, 0.33]), size = (600, 550),
     left_margin = 0mm, right_margin = 3mm)
+display(fig_dam)
 
