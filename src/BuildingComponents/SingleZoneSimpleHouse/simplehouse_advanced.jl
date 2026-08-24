@@ -41,8 +41,8 @@ Moisture sources always present: occupant latent load (via `latentToMoisture`) a
             V = VZone,
             Qflow_const = 0.0,
         )
-        weaBus = WeatherBus(df_weather, interp_method = DataInterpolations.AkimaInterpolation)
-        sch = ScheduleBus(df_schedule)
+        weaBus = WeatherBus(df_weather, interp_method = AkimaSpline, periodic_padding_steps = 0)
+        sch = ScheduleBus(df_schedule, interp_method = ConstantInterpolation)
         conRes = ThermalResistor(R = R_con)
         walRes = ThermalResistor(R = R_wal)
         walCap = HeatCapacitor(C = C_wal)

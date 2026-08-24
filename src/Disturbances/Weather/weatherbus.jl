@@ -25,10 +25,11 @@ end
 
 Build a WeatherBus ODESystem from a processed weather DataFrame (e.g. from `ReadEPW`).
 Exposes thermo, radiation, and wind signals as `RealOutput` ports.
-Uses `AkimaInterpolation` by default; pass `interp_method` to override.
-With Akima interpolation, `periodic_padding_steps=1` appends one next-year anchor
-to reduce right-boundary artifacts. This approximates the Modelica Buildings
-last-two-point boundary extrapolation more simply.
+`interp_method` is required. `periodic_padding_steps` appends next-year anchors,
+which keeps `DataInterpolations` types inside their data range. Pair `AkimaSpline`
+with `periodic_padding_steps = 0`, since it extrapolates linearly on its own.
+When `df` carries `:TDryBul_degC`/`:TDewPoi_degC`, temperatures are interpolated
+in Celsius and converted to Kelvin.
 
 `df` must contain: `:time` [s], `:TDryBul` [K], `:TDewPoi` [K], `:relHum` [-],
 `:TWetBul` [K], `:HumRat` [kg/kg_da], `:HGloHor/:HDifHor/:HDirNor/:HHorIR` [W/m²],
@@ -38,13 +39,16 @@ must contain `:pAtm` [Pa].
 
 Solar radiation outputs are time-shifted by `radiation_time_shift_s` (default 1800 s)
 to match Modelica ReaderTMY3 convention.
+With `clamp_radiation=true` (default), `HGloHor`, `HDifHor`, and `HDirNor` are
+clamped to nonnegative values.
 """
 function WeatherBus(df::DataFrame; name::Symbol = :WeatherBus,
                                    time_col::Symbol = :time,
-                                   interp_method = AkimaInterpolation,
+                                   interp_method,
                                    use_constant_pressure::Bool = true,
                                    radiation_time_shift_s::Real = 1800.0,
-                                   periodic_padding_steps::Int = 1)
+                                   periodic_padding_steps::Int = 1,
+                                   clamp_radiation::Bool = true)
     periodic_padding_steps >= 0 || error("WeatherBus: periodic_padding_steps must be nonnegative.")
 
     # time axis
@@ -52,8 +56,10 @@ function WeatherBus(df::DataFrame; name::Symbol = :WeatherBus,
     shift_s = Float64(radiation_time_shift_s)
 
     # thermo
-    TDryBul_data = Float64.(df[!, :TDryBul])
-    TDewPoi_data = Float64.(df[!, :TDewPoi])
+    temp_in_degC = hasproperty(df, :TDryBul_degC) && hasproperty(df, :TDewPoi_degC)
+    temp_offset  = temp_in_degC ? 273.15 : 0.0
+    TDryBul_data = temp_in_degC ? Float64.(df[!, :TDryBul_degC]) : Float64.(df[!, :TDryBul])
+    TDewPoi_data = temp_in_degC ? Float64.(df[!, :TDewPoi_degC]) : Float64.(df[!, :TDewPoi])
     relHum_data  = Float64.(df[!, :relHum])
     pAtm_data    = use_constant_pressure ? fill(101325.0, length(time_data)) : Float64.(df[!, :pAtm])
     TWetBul_data = Float64.(df[!, :TWetBul])
@@ -143,22 +149,37 @@ function WeatherBus(df::DataFrame; name::Symbol = :WeatherBus,
         connect(clk.output, itp_winDir.input)
         connect(clk.output, itp_winSpe.input)
 
-        connect(itp_TDryBul.output, TDryBul)
-        connect(itp_TDewPoi.output, TDewPoi)
         connect(itp_relHum.output,  relHum)
         connect(itp_pAtm.output,    pAtm)
         connect(itp_TWetBul.output, TWetBul)
         connect(itp_HumRat.output,  HumRat)
 
-        connect(itp_HGloHor.output, HGloHor)
-        connect(itp_HDifHor.output, HDifHor)
-        connect(itp_HDirNor.output, HDirNor)
         connect(itp_HHorIR.output,  HHorIR)
         connect(itp_albedo.output,  albedo)
 
         connect(itp_winDir.output,  winDir)
         connect(itp_winSpe.output,  winSpe)
     ]
+
+    solar_eqs = clamp_radiation ? [
+        HGloHor.u ~ max(0.0, itp_HGloHor.output.u)
+        HDifHor.u ~ max(0.0, itp_HDifHor.output.u)
+        HDirNor.u ~ max(0.0, itp_HDirNor.output.u)
+    ] : [
+        connect(itp_HGloHor.output, HGloHor)
+        connect(itp_HDifHor.output, HDifHor)
+        connect(itp_HDirNor.output, HDirNor)
+    ]
+    eqs = vcat(eqs, solar_eqs)
+
+    temp_eqs = temp_in_degC ? [
+        TDryBul.u ~ itp_TDryBul.output.u + temp_offset
+        TDewPoi.u ~ itp_TDewPoi.output.u + temp_offset
+    ] : [
+        connect(itp_TDryBul.output, TDryBul)
+        connect(itp_TDewPoi.output, TDewPoi)
+    ]
+    eqs = vcat(eqs, temp_eqs)
 
     ODESystem(eqs, t; name,
         systems = [clk,
@@ -183,10 +204,11 @@ Picks the DataFrame from `df` keyword or, if absent, the first DataFrame-valued 
 function WeatherBus(; name::Symbol = :WeatherBus,
                       time_col::Symbol = :time,
                       df::Union{Nothing,AbstractDataFrame} = nothing,
-                      interp_method = AkimaInterpolation,
+                      interp_method,
                       use_constant_pressure::Bool = true,
                       radiation_time_shift_s::Real = 1800.0,
                       periodic_padding_steps::Int = 1,
+                      clamp_radiation::Bool = true,
                       kwargs...)
     df_ = df
 
@@ -209,5 +231,6 @@ function WeatherBus(; name::Symbol = :WeatherBus,
     return WeatherBus(df_; name=name, time_col=time_col, interp_method=interp_method,
                       use_constant_pressure=use_constant_pressure,
                       radiation_time_shift_s=radiation_time_shift_s,
-                      periodic_padding_steps=periodic_padding_steps)
+                      periodic_padding_steps=periodic_padding_steps,
+                      clamp_radiation=clamp_radiation)
 end

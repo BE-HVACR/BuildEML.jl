@@ -48,17 +48,11 @@ end
 
 function _apply_reader_tmy3_hourly_alignment(df::DataFrame)
     # MBL ReaderTMY3 convention: h_k data is placed at t = k × 3600 (end-of-hour),
-    # with the first record duplicated at t=0 as a periodic anchor.
+    # with the first record duplicated at t=0 as a periodic anchor. The last EPW
+    # record is dropped.
     first_row = deepcopy(df[1, :])
-    last_row  = deepcopy(df[end, :])
     df_shifted = vcat(DataFrame(first_row), df[1:end-1, :])
     df_shifted.time = collect(0.0:3600.0:(3600.0 * (nrow(df_shifted) - 1)))
-
-    # Use the last EPW row (Dec 31 h24) as the periodic endpoint so that
-    # interpolation at t = 8760×3600 stays near year-end values.
-    endpoint = last_row
-    endpoint.time = df_shifted.time[end] + 3600.0
-    push!(df_shifted, endpoint)
 
     return df_shifted
 end
@@ -109,8 +103,10 @@ function ReadEPW(epw_path::AbstractString; return_raw::Bool = false)
     clamp01(x) = x < 0 ? 0.0 : (x > 1 ? 1.0 : x)
     deg2rad(x) = x * (pi / 180.0)
 
-    TDryBul = Float64.(df_raw.temp_air) .+ 273.15
-    TDewPoi = Float64.(df_raw.temp_dew) .+ 273.15
+    TDryBul_degC = Float64.(df_raw.temp_air)
+    TDewPoi_degC = Float64.(df_raw.temp_dew)
+    TDryBul = TDryBul_degC .+ 273.15
+    TDewPoi = TDewPoi_degC .+ 273.15
     relHum = clamp01.(Float64.(df_raw.relative_humidity) ./ 100.0)
     pAtm = Float64.(df_raw.atmospheric_pressure)
 
@@ -128,6 +124,7 @@ function ReadEPW(epw_path::AbstractString; return_raw::Bool = false)
     df = DataFrame(;
         time, TDryBul, TDewPoi, relHum, pAtm, TWetBul, HumRat,
         HGloHor, HDifHor, HDirNor, HHorIR, albedo, winDir, winSpe,
+        TDryBul_degC, TDewPoi_degC,
     )
 
     if is_hourly
