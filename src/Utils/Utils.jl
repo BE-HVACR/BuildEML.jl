@@ -17,6 +17,7 @@ export unit_K2C, unit_C2K, to_SI, to_SI_T, to_SI_p, to_SI_massflow, to_SI_volflo
 include("units.jl")
 
 export ParameterizedSource, FirstOrderLag
+export AkimaSpline
 include("interpolation.jl")
 
 end

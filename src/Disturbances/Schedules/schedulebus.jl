@@ -1,5 +1,5 @@
 """
-    ScheduleBus(df; name=:ScheduleBus, time_col=:time, interp_method=ConstantInterpolation)
+    ScheduleBus(df; name=:ScheduleBus, time_col=:time, interp_method)
 
 Expose a schedule table as a bus of piecewise-constant signals.
 
@@ -10,7 +10,7 @@ This mirrors the `WeatherBus(df)` workflow:
 function ScheduleBus(df::DataFrame;
                      name::Symbol = :ScheduleBus,
                      time_col::Symbol = :time,
-                     interp_method = ConstantInterpolation)
+                     interp_method)
     _validate_schedule_dataframe(df; time_col = time_col)
 
     time_data = Float64.(df[!, time_col])
@@ -125,7 +125,7 @@ end
 function ScheduleBus(; name::Symbol = :ScheduleBus,
                      time_col::Symbol = :time,
                      df::Union{Nothing,AbstractDataFrame} = nothing,
-                     interp_method = ConstantInterpolation,
+                     interp_method,
                      kwargs...)
     df_ = df
 
