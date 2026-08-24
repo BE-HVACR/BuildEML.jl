@@ -1,3 +1,4 @@
 /Manifest*.toml
 /src/Disturbances/Weather/weatherfile/_TMY3/
 /src/Disturbances/Weather/weatherfile/_TMYx.2011-2025/
+result_images/

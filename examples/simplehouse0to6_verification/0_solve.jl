@@ -8,10 +8,7 @@ using DataFrames
 include(joinpath(@__DIR__, "helpers.jl"))
 include(joinpath(@__DIR__, "0_model.jl"))
 
-# Note:
-# `SimpleHouse0` itself only uses `TDryBul`.
-# `HGloHor` is compared here as a representative weather-bus sanity check.
-# The standalone `SimpleHouse` example uses `HGloHor`, whereas `SimpleHouse2`-`SimpleHouse6` use `HDirNor`.
+# MBL `SimpleHouse0` uses only `TDryBul`. `HGloHor` is checked here as well.
 
 @mtkbuild sys = SimpleHouse0(df_weather = df_weather)
 
@@ -25,8 +22,8 @@ tspan = (modelica_time_s[1], modelica_time_s[end])
 prob = ODEProblem(sys, Pair[], tspan)
 sol = solve(prob, Tsit5(); saveat = modelica_time_s, reltol = 1e-6)
 
-TOut_sim_C = unit_K2C.(sol[sys.weaBus.TDryBul.u])
-HGlo_sim   = sol[sys.weaBus.HGloHor.u]
+TOut_sim_C = unit_K2C.(sol[sys.TOut.T.u])
+HGlo_sim   = sol[sys.gaiHGlo.output.u]
 
 
 # ── Load Modelica columns ──────────────────────────────────────────────────────
@@ -51,7 +48,7 @@ xtk = collect(range(0, 8760, length = 7))
 # ── Plot: dry-bulb temperature ─────────────────────────────────────────────────
 p_T_top = plot(
     time_hr, TOut_sim_C;
-    label     = @sprintf("This work (RMSE: %.2f°C, MBE: %.2f°C)", rmse_TOut, mbe_TOut),
+    label     = @sprintf("This work (RMSE: %.1e °C, MBE: %.1e °C)", rmse_TOut, mbe_TOut),
     title     = "Outdoor dry-bulb temperature (SimpleHouse0)",
     ylabel    = "Temperature [°C]",
     xlims     = (0, 8760),
@@ -68,15 +65,14 @@ plot!(p_T_top, time_hr, TOut_mbl_C;
     linestyle = :dash,
 )
 
-abserr_T = TOut_sim_C .- TOut_mbl_C
+abserr_T = (TOut_sim_C .- TOut_mbl_C) .* 1e5   # shown in 1e-5 °C
 
 p_T_bot = plot(
     time_hr, abserr_T;
     label   = "Error",
-    ylabel  = "Error [°C]",
+    ylabel  = "Error [10⁻⁵ °C]",
     xlabel  = "Time [hr]",
     xlims   = (0, 8760),
-    ylims   = (-0.5, 0.5),
     xticks  = xtk,
     color                   = :gray,
     legend                  = :topleft,
@@ -84,13 +80,14 @@ p_T_bot = plot(
 )
 # hline!(p_T_bot, [0.0]; color = :black, linestyle = :dot, label = "")
 
-display(plot(p_T_top, p_T_bot, layout = grid(2, 1, heights = [0.67, 0.33]), size = (600, 550),
-    left_margin = 0mm, right_margin = 3mm))
+fig_T = plot(p_T_top, p_T_bot, layout = grid(2, 1, heights = [0.67, 0.33]), size = (600, 550),
+    left_margin = 0mm, right_margin = 3mm)
+display(fig_T)
 
 # ── Plot: global horizontal irradiance ────────────────────────────────────────
 p_H_top = plot(
     time_hr, HGlo_sim;
-    label     = @sprintf("This work (RMSE: %.1f W/m², MBE: %.1f W/m²)", rmse_HGlo, mbe_HGlo),
+    label     = @sprintf("This work (RMSE: %.1e W/m², MBE: %.1e W/m²)", rmse_HGlo, mbe_HGlo),
     title     = "Global horizontal irradiance (SimpleHouse0)",
     ylabel    = "Irradiance [W/m²]",
     xlims     = (0, 8760),
@@ -107,15 +104,14 @@ plot!(p_H_top, time_hr, HGlo_mbl;
     linestyle = :dash,
 )
 
-abserr_H = HGlo_sim .- HGlo_mbl
+abserr_H = (HGlo_sim .- HGlo_mbl) .* 1e5   # shown in 1e-5 W/m²
 
 p_H_bot = plot(
     time_hr, abserr_H;
     label   = "Error",
-    ylabel  = "Error [W/m²]",
+    ylabel  = "Error [10⁻⁵ W/m²]",
     xlabel  = "Time [hr]",
     xlims   = (0, 8760),
-    ylims   = (-6, 1),
     xticks  = xtk,
     color                   = :gray,
     legend                  = :bottom,
@@ -123,5 +119,6 @@ p_H_bot = plot(
 )
 # hline!(p_H_bot, [0.0]; color = :black, linestyle = :dot, label = "")
 
-plot(p_H_top, p_H_bot, layout = grid(2, 1, heights = [0.67, 0.33]), size = (600, 550),
+fig_H = plot(p_H_top, p_H_bot, layout = grid(2, 1, heights = [0.67, 0.33]), size = (600, 550),
     left_margin = 0mm, right_margin = 3mm)
+display(fig_H)
