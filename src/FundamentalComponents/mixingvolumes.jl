@@ -71,15 +71,13 @@ function _build_airmixingvolume_n_system(;
     push!(eqs, connect(self_heatport, heatflowsen.port_b))
 
     total_mflow = sum(port.mflow for port in ports)
-    moisture_rhs = sum(ports[i].mflow * (port_w[i] - w_mix) for i in 1:N) + water_mflow_.u * (1.0 - w_mix)
+    moisture_rhs = sum(ports[i].mflow * (port_w[i] - w_mix) for i in 1:N) + water_mflow_.u
     energy_rhs = sum(ports[i].mflow * (h_Tw(port_T[i], port_w[i]) - h_Tw(T_mix, w_mix)) for i in 1:N) +
                  Qconst + heatflowsen.Q_flow.u
 
     if !if_steady_state
         push!(eqs,
-            Vp * ((-rho_p(p_mix) / T_mix) * D(T_mix) +
-                  (-rho_p(p_mix) * 1.6078 / (1 + 1.6078 * w_mix)) * D(w_mix) +
-                  (rho_p(p_mix) / p_mix) * D(p_mix)) ~ total_mflow
+            Vp * (rho_p(p_mix) / p_mix) * D(p_mix) ~ total_mflow
         )
         push!(eqs, (rho_p(p_mix) * Vp) * D(w_mix) ~ moisture_rhs)
         push!(eqs, (rho_p(p_mix) * Vp) * (cp_moistair_w(w_mix) * D(T_mix) + h_g(T_mix) * D(w_mix)) ~ energy_rhs)
