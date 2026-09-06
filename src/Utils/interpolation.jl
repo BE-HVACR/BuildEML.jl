@@ -66,6 +66,7 @@ function AkimaSpline(u::AbstractVector, t::AbstractVector)
 end
 
 function (itp::AkimaSpline)(x)
+    isnan(x) && return x
     t = itp.t
     n = length(t)
     if x < t[1]
@@ -77,7 +78,7 @@ function (itp::AkimaSpline)(x)
         der = (3 * itp.c0[n - 1] * v + 2 * itp.c1[n - 1]) * v + itp.c2[n - 1]
         return itp.u[n] + der * (x - t[n])
     else
-        k = min(searchsortedlast(t, x), n - 1)
+        k = clamp(searchsortedlast(t, x), 1, n - 1)   # -0.0 sorts before 0.0
         v = x - t[k]
         return itp.u[k] + ((itp.c0[k] * v + itp.c1[k]) * v + itp.c2[k]) * v
     end
