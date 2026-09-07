@@ -12,7 +12,7 @@ include(joinpath(@__DIR__, "2_heatingonly_model.jl"))
 epw_path = "src/Disturbances/Weather/weatherfile/USA_IL_Chicago-OHare.Intl.AP.725300_TMY3.epw"
 df_weather = ReadEPW(epw_path)
 
-@mtkbuild sys = SimpleHouseHeatingOnly(df_weather = df_weather)
+@mtkcompile sys = SimpleHouseHeatingOnly(df_weather = df_weather)
 
 @show unknowns(sys);
 

@@ -8,7 +8,7 @@ using DataFrames
 include(joinpath(@__DIR__, "helpers.jl"))
 include(joinpath(@__DIR__, "5_model.jl"))
 
-@mtkbuild sys = SimpleHouse5(df_weather = df_weather)
+@mtkcompile sys = SimpleHouse5(df_weather = df_weather)
 # @show unknowns(sys)
 
 u0 = [

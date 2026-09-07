@@ -23,7 +23,7 @@ end
     WeatherBus(df; name, time_col, interp_method, use_constant_pressure,
                radiation_time_shift_s, periodic_padding_steps)
 
-Build a WeatherBus ODESystem from a processed weather DataFrame (e.g. from `ReadEPW`).
+Build a WeatherBus System from a processed weather DataFrame (e.g. from `ReadEPW`).
 Exposes thermo, radiation, and wind signals as `RealOutput` ports.
 `interp_method` is required. `periodic_padding_steps` appends next-year anchors,
 which keeps `DataInterpolations` types inside their data range. Pair `AkimaSpline`
@@ -181,7 +181,7 @@ function WeatherBus(df::DataFrame; name::Symbol = :WeatherBus,
     ]
     eqs = vcat(eqs, temp_eqs)
 
-    ODESystem(eqs, t; name,
+    System(eqs, t; name,
         systems = [clk,
                    itp_TDryBul, itp_TDewPoi, itp_relHum, itp_pAtm, itp_TWetBul, itp_HumRat,
                    itp_HGloHor, itp_HDifHor, itp_HDirNor, itp_HHorIR, itp_albedo,

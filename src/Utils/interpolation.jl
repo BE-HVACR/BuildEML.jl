@@ -134,7 +134,7 @@ function ParameterizedSource(t_grid_input::AbstractVector; if_constant_interpola
         defs[y_params[i]] = 0.0
     end
 
-    ODESystem(eqs, t, [], [y_params..., t_grid_params...];
+    System(eqs, t, [], [y_params..., t_grid_params...];
         systems = [clk, output],
         defaults = defs,
         name = name)

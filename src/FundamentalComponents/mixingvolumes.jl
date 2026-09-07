@@ -100,7 +100,7 @@ function _build_airmixingvolume_n_system(;
         push!(eqs, water_mflow_.u ~ 0.0)
     end
 
-    return ODESystem(eqs, t; name, systems = subs, defaults = defaults)
+    return System(eqs, t; name, systems = subs, defaults = defaults)
 end
 
 

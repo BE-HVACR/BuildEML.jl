@@ -83,7 +83,7 @@ function run_segmented_hysteresis(prob, sys, modelica_time_s; scan_dt = 60.0, y_
     return (time_s = out_t[ord], zonT_C = out_T[ord], dam = out_y[ord], event_t = seg_event_t, event_y = seg_event_y)
 end
 
-@mtkbuild sys = SimpleHouse6(df_weather = df_weather)
+@mtkcompile sys = SimpleHouse6(df_weather = df_weather)
 
 u0 = [
     sys.walCap.T           => 293.15,
