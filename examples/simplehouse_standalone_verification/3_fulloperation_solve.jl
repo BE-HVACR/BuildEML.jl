@@ -12,7 +12,7 @@ include(joinpath(@__DIR__, "3_fulloperation_model.jl"))
 epw_path = "src/Disturbances/Weather/weatherfile/USA_IL_Chicago-OHare.Intl.AP.725300_TMY3.epw"
 df_weather = ReadEPW(epw_path)
 
-@mtkbuild sys = SimpleHouseTotal(df_weather = df_weather)
+@mtkcompile sys = SimpleHouseTotal(df_weather = df_weather)
 
 u0 = [
     sys.house.zon.T_mix => 293.15,

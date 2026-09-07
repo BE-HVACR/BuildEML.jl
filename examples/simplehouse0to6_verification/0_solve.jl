@@ -10,7 +10,7 @@ include(joinpath(@__DIR__, "0_model.jl"))
 
 # MBL `SimpleHouse0` uses only `TDryBul`. `HGloHor` is checked here as well.
 
-@mtkbuild sys = SimpleHouse0(df_weather = df_weather)
+@mtkcompile sys = SimpleHouse0(df_weather = df_weather)
 
 csv_path = joinpath(@__DIR__, "MBLresult_simplehouse0.csv")
 isfile(csv_path) || error("Required CSV not found: $(csv_path)")

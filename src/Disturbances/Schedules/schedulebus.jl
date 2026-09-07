@@ -109,7 +109,7 @@ function ScheduleBus(df::DataFrame;
         connect(itp_RHMaxSet.output, RHMaxSet)
     ]
 
-    return ODESystem(eqs, t; name,
+    return System(eqs, t; name,
         systems = [
             clk,
             itp_occ_ratio, itp_occ_active, itp_people_count, itp_vent_min,
