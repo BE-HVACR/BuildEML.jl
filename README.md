@@ -1,17 +1,14 @@
 # BuildEML
 
-BuildEML is a Julia package for equation-based building/HVAC system energy modeling and simulation.
+BuildEML is a Julia package for equation-based modeling and simulation of building and HVAC systems. It is built on ModelingToolkit.jl, so models can be used together with the Julia SciML ecosystem, including its differential-equation solvers, automatic differentiation, and optimization tooling.
 
 
 ## Status
 
-This repository is an early public release of the package and remains under
-active development.
-
-At its current stage, BuildEML is a prototype-oriented package. Some of its
-current functionality is inspired by the Modelica Buildings Library (MBL)
-SimpleHouse examples, which are also used here as verification references,
-though the implementation here is not a one-to-one replication.
+This is an early public release under active development. The current release
+provides a building energy system modeling prototype that includes single-zone
+building models, hydronic and air-side HVAC components, and weather-file
+handling.
 
 ## Installation
 
@@ -35,7 +32,7 @@ The package currently includes the following main modules:
 - `Disturbances`
   Weather-file handling, TMYx files, and schedule (occupant/interal heat gain) generation.
 
-## Examples
+## Verification examples
 
 Example workflows are available in the [`examples/`](examples) directory,
 including:
@@ -47,9 +44,15 @@ including:
 
 ## Citation
 
-If BuildEML is helpful in your research, please consider citing this
-repository. A related paper citation will be added here once the associated
-manuscript is published.
+If you use BuildEML in your research, please cite the following accepted
+conference paper, which describes the modeling prototype and its verification:
+
+```
+R. Song, M. Liu, Z. Yang, and Z. O'Neill. "Toward Equation-Based Building
+Energy System Modeling in Julia: A Modular Prototype and Verification Study."
+Proceedings of the American Modelica & FMI Conference 2026, Atlanta, GA, USA,
+October 12–14, 2026. To appear.
+```
 
 ## Julia Version
 
