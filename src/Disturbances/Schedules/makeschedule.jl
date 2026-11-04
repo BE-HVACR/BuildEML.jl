@@ -159,7 +159,10 @@ end
 function _build_schedule_rows(day_profile::AbstractVector,
                               lighting_profile::AbstractVector,
                               n_people_full::Real,
-                              min_vent_rate_perperson::Real,
+                              floor_area::Real,
+                              vent_rate_perperson::Real,
+                              vent_rate_perarea::Real,
+                              vent_mode::Symbol,
                               occ_sen_heatgain_perperson::Real,
                               occ_lat_heatgain_perperson::Real,
                               lighting_power_full::Real,
@@ -178,7 +181,12 @@ function _build_schedule_rows(day_profile::AbstractVector,
     lighting_ratio = clamp.(Float64.(lighting_profile), 0.0, 1.0)
 
     people_count = float(n_people_full) .* occ_ratio
-    vent_min = float(min_vent_rate_perperson) .* people_count
+    vent_area = float(vent_rate_perarea) * float(floor_area)
+    if vent_mode === :dcv
+        vent_min = occ_active .* (vent_area .+ float(vent_rate_perperson) .* people_count)
+    else # :fixed
+        vent_min = occ_active .* (vent_area + float(vent_rate_perperson) * float(n_people_full))
+    end
     QOccSen = float(occ_sen_heatgain_perperson) .* people_count
     QOccLat = float(occ_lat_heatgain_perperson) .* people_count
     PLight = float(lighting_power_full) .* lighting_ratio
@@ -241,7 +249,13 @@ Inputs:
   `n_people_full` directly sets the full-occupancy people count and overrides
   `floor_area * occupant_density` when provided.
   `floor_area` is required. Provide either `n_people_full`, or `occupant_density`.
-  `min_vent_rate_perperson` is the minimum ventilation rate per person [m3/s].
+  `vent_rate_perperson` [m3/s-person] and `vent_rate_perarea` [m3/s-m^2] are the
+  ASHRAE 62.1 people and area outdoor air rates `Rp` and `Ra`.
+  `vent_mode = :dcv` gives `Vbz = Ra * floor_area + Rp * peopleCount` while occupied;
+  `vent_mode = :fixed` gives the design `Vbz = Ra * floor_area + Rp * n_people_full` while occupied.
+  `ventMin` is zero while unoccupied.
+  `ventMin` is the breathing-zone outdoor airflow `Vbz` (ASHRAE 62.1); zone air distribution
+  effectiveness `Ez` is not applied, so the zone outdoor airflow `Voz = Vbz / Ez` is left to downstream.
   `if_occupant_heatgain=true` adds occupant sensible/latent loads and requires
   `occ_sen_heatgain_perperson` and `occ_lat_heatgain_perperson` [W/person].
   `if_other_loads=true` adds lighting loads and requires
@@ -281,7 +295,9 @@ function MakeSchedule(;
         n_people_full::Union{Nothing,Real} = nothing,
         floor_area::Real,
         occupant_density::Union{Nothing,Real} = nothing,
-        min_vent_rate_perperson::Real,
+        vent_rate_perperson::Real,
+        vent_rate_perarea::Real,
+        vent_mode::Symbol = :dcv,
         if_occupant_heatgain::Bool = true,
         occ_sen_heatgain_perperson::Union{Nothing,Real} = nothing,
         occ_lat_heatgain_perperson::Union{Nothing,Real} = nothing,
@@ -312,6 +328,8 @@ function MakeSchedule(;
         lighting_ratio_saturday === nothing && (lighting_ratio_saturday = _default_unoccupied_profile_like(lighting_ratio_weekday))
         lighting_ratio_sunday === nothing && (lighting_ratio_sunday = _default_unoccupied_profile_like(lighting_ratio_weekday))
     end
+    vent_mode in (:dcv, :fixed) ||
+        throw(ArgumentError("`vent_mode` must be `:dcv` or `:fixed`. Got $(repr(vent_mode))."))
     explicit_day_types = _normalize_explicit_day_types(explicit_day_types, base_year)
     n_people_full_effective = _resolve_n_people_full(;
         n_people_full = n_people_full,
@@ -423,7 +441,10 @@ function MakeSchedule(;
             day_profile,
             lighting_profile,
             n_people_full_effective,
-            min_vent_rate_perperson,
+            floor_area,
+            vent_rate_perperson,
+            vent_rate_perarea,
+            vent_mode,
             occ_sen_heatgain_perperson_effective,
             occ_lat_heatgain_perperson_effective,
             lighting_power_full_effective,

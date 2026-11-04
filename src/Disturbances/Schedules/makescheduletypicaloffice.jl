@@ -24,11 +24,20 @@ This helper delegates to `MakeSchedule(...)` with the following reference-based
 defaults. These are intended as estimated typical-office assumptions rather than
 one-to-one mandatory values for every office:
 - weekday / saturday / sunday occupancy profiles pre-filled
+- `occ_eps = 0.05`
+  occupancy ratio <= 0.05 is treated as unoccupied mode, giving occupied hours of
+  weekdays 06:00-22:00, Saturdays 06:00-17:00, and Sundays/holidays none.
+  For reference, `HVACOperationSchd` of the DOE Commercial Reference Building medium office is
+  weekdays 06:00-22:00, Saturdays 06:00-18:00, and Sundays/holidays off.
 - `occupant_density = 0.05` [person/m2]
   from ASHRAE 62.1-2016 Table 6.2.2.1, office buildings - occupant density
-- `min_vent_rate_perperson = 0.0085` [m3/s-person]
-  converted from 8.5 L/s-person, from ASHRAE 62.1-2016 Table 6.2.2.1,
-  office buildings - office space Combined Outdoor Air Rate
+- `vent_rate_perperson = 0.0025` [m3/s-person]
+  converted from 2.5 L/s-person, from ASHRAE 62.1-2016 Table 6.2.2.1,
+  office buildings - office space People Outdoor Air Rate `Rp`
+- `vent_rate_perarea = 0.0003` [m3/s-m2]
+  converted from 0.3 L/s-m2, from ASHRAE 62.1-2016 Table 6.2.2.1,
+  office buildings - office space Area Outdoor Air Rate `Ra`
+- `vent_mode = :dcv`
 - `occ_sen_heatgain_perperson = 75.0` [W/person]
   reference occupant sensible heat gain
 - `occ_lat_heatgain_perperson = 45.0` [W/person]
@@ -65,7 +74,9 @@ function MakeScheduleTypicalOffice(;
         n_people_full::Union{Nothing,Real} = nothing,
         floor_area::Real,
         occupant_density::Real = 0.05,
-        min_vent_rate_perperson::Real = 0.0085,
+        vent_rate_perperson::Real = 0.0025,
+        vent_rate_perarea::Real = 0.0003,
+        vent_mode::Symbol = :dcv,
         occ_sen_heatgain_perperson::Real = 75.0,
         occ_lat_heatgain_perperson::Real = 45.0,
         if_other_loads::Bool = true,
@@ -84,7 +95,7 @@ function MakeScheduleTypicalOffice(;
         if_occupant_heatgain::Bool = true,
         bin_seconds::Real = 3600.0,
         base_year::Int = 2001,
-        occ_eps::Real = 1e-6)
+        occ_eps::Real = 0.05)
     occ_ratio_weekday = _expand_hourly_profile(
         [
             0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -131,7 +142,9 @@ function MakeScheduleTypicalOffice(;
         n_people_full = n_people_full,
         floor_area = floor_area,
         occupant_density = occupant_density,
-        min_vent_rate_perperson = min_vent_rate_perperson,
+        vent_rate_perperson = vent_rate_perperson,
+        vent_rate_perarea = vent_rate_perarea,
+        vent_mode = vent_mode,
         if_occupant_heatgain = if_occupant_heatgain,
         occ_sen_heatgain_perperson = occ_sen_heatgain_perperson,
         occ_lat_heatgain_perperson = occ_lat_heatgain_perperson,
