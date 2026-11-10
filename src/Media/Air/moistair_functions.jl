@@ -17,8 +17,8 @@ rho_p(p) = p * rho_air_ref / p_air_ref
 
 w_TRHp(T, RH, p) = 0.621945 * (RH * p_saturation(T)) / (p - (RH * p_saturation(T)))  # kg_w/kg_da
 
-# Alduchov, O. A., and R. E. Eskridge, 1996: Improved Magnus Form Approximation of Saturation Vapor Pressure. J. Appl. Meteor. Climatol., 35, 601-609, https://doi.org/10.1175/1520-0450(1996)035<0601:IMFAOS>2.0.CO;2.
-p_saturation(T) = 610.94 * exp(17.625 * (T - 273.15) / (T - 273.15 + 243.04))  # Pa
+# Modelica Buildings Library, Buildings.Utilities.Psychrometrics.Functions.saturationPressureLiquid
+p_saturation(T) = 611.657 * exp(17.2799 - 4102.99 / (T - 35.719))  # Pa
 
 
 # Stull, R., 2011: Wet-Bulb Temperature from Relative Humidity and Air Temperature. J. Appl. Meteor. Climatol., 50, 2267-2269,  https://doi.org/10.1175/JAMC-D-11-0143.1.
@@ -29,5 +29,5 @@ wetbulb_TRH(T, RH) = 273.15 + (T - 273.15) * atan(0.151977 * sqrt(100 * RH + 8.3
 w_sat(T) = 0.621945 * p_saturation(T) / (patm - p_saturation(T))  # kg_w/kg_da
 
 T_dew(w) = let pw = w * p_air_ref / (0.621945 + w)
-    243.04 * log(pw / 610.94) / (17.625 - log(pw / 610.94)) + 273.15
+    35.719 + 4102.99 / (17.2799 - log(pw / 611.657))
 end  # K
