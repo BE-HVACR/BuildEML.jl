@@ -41,6 +41,8 @@ Power is computed from dp × Vflow and efficiency. If `if_dynamic_eff = true`,
     @equations begin
         port_b.T_ofo ~ instream(port_a.T_ofo)
         port_b.w_ofo ~ instream(port_a.w_ofo)
+        port_a.T_ofo ~ port_a.T_guess
+        port_a.w_ofo ~ port_a.w_guess
 
         dp_fan   ~ dp_set.u
         port_b.p ~ dp_fan + port_a.p
@@ -108,6 +110,7 @@ Power is computed from hydraulic work and efficiency (constant or PLR-based via 
 
     @equations begin
         port_b.T_ofo ~ instream(port_a.T_ofo)
+        port_a.T_ofo ~ port_a.T_guess
 
         mflow ~ mflow_set.u
         port_a.mflow ~  mflow

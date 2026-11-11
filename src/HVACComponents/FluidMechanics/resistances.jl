@@ -20,5 +20,6 @@
         dp ~ k * mflow * smooth_abs(mflow)
 
         port_b.T_ofo ~ instream(port_a.T_ofo)
+        port_a.T_ofo ~ port_a.T_guess
     end
 end

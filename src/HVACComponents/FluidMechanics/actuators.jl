@@ -56,6 +56,8 @@ Two modes via `use_exponential`:
     @equations begin
         port_b.T_ofo ~ instream(port_a.T_ofo)
         port_b.w_ofo ~ instream(port_a.w_ofo)
+        port_a.T_ofo ~ port_a.T_guess
+        port_a.w_ofo ~ port_a.w_guess
 
         y_eff ~ smooth_clamp(y.u, 0.0, 1.0)
         if use_exponential

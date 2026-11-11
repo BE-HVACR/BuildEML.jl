@@ -102,6 +102,10 @@ Constant-effectiveness sensible (and optional latent) air-to-air heat exchanger.
 
         port_b1.T_ofo ~ T1_out
         port_b2.T_ofo ~ T2_out
+        port_a1.T_ofo ~ port_a1.T_guess
+        port_a2.T_ofo ~ port_a2.T_guess
+        port_a1.w_ofo ~ port_a1.w_guess
+        port_a2.w_ofo ~ port_a2.w_guess
 
         port_b1.w_ofo ~ w1_out
         port_b2.w_ofo ~ w2_out

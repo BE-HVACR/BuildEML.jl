@@ -222,7 +222,8 @@ end
         
         port_a.p ~ p_boundary
         port_b.p ~ p_boundary
-        port_b.T_ofo ~ instream(port_a.T_ofo) 
+        port_b.T_ofo ~ instream(port_a.T_ofo)
+        port_a.T_ofo ~ port_a.T_guess
         port_a.mflow + port_b.mflow ~ 0
 
     end

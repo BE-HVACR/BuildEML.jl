@@ -49,6 +49,8 @@ Sensible cooler with prescribed outlet temperature.
 
         port_b.T_ofo ~ T_out
         port_b.w_ofo ~ instream(port_a.w_ofo)
+        port_a.T_ofo ~ port_a.T_guess
+        port_a.w_ofo ~ port_a.w_guess
 
         Qflow.u ~ Qflow_actual
     end
@@ -99,6 +101,8 @@ Sensible heater with prescribed outlet temperature.
 
         port_b.T_ofo ~ T_out
         port_b.w_ofo ~ instream(port_a.w_ofo)
+        port_a.T_ofo ~ port_a.T_guess
+        port_a.w_ofo ~ port_a.w_guess
 
         Qflow.u ~ Qflow_actual
     end
@@ -155,6 +159,8 @@ Wet cooling coil with prescribed apparatus dew point.
 
         port_b.T_ofo ~ T_out
         port_b.w_ofo ~ w_out
+        port_a.T_ofo ~ port_a.T_guess
+        port_a.w_ofo ~ port_a.w_guess
 
         Qflow.u ~ Qflow_total
     end
