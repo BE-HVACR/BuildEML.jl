@@ -10,7 +10,7 @@ using ..FundamentalComponents
 
 export Fan_dp, Pump_mflow
 include("FluidMechanics/movers.jl")
-export DamperExponential
+export Damper
 include("FluidMechanics/actuators.jl")
 export WaterPressureDrop
 include("FluidMechanics/resistances.jl")

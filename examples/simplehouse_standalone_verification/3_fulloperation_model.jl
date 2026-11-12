@@ -23,11 +23,11 @@ include(joinpath(@__DIR__, "2_heatingonly_model.jl"))
             mflow_nominal = mAir_flow_nominal,
             dp_nominal = dpAir_nominal
         )
-        dam = DamperExponential(
+        dam = Damper(
             mflow_nominal = mAir_flow_nominal,
             dpDamper_nominal = 10.0,
             dpFixed_nominal = dpAir_nominal - 10.0,
-            use_exponential = false
+            use_exponential = true
         )
         senRex = Constant_HX(
             if_latent = false,

@@ -1,15 +1,19 @@
 """
-Variable-opening air damper with pressure-drop/flow characteristic.
+Variable-opening air damper with selectable opening characteristic.
 
 Ports: `port_a` (inlet), `port_b` (outlet), `y` (opening signal [0, 1]).
 Air state (T, w) passes through unchanged; only pressure is modified.
 
 Two modes via `use_exponential`:
-- false (default): power-law, `f_y = y_leak + (1 - y_leak) * y^n_open`
-- true: MBL exponentialDamper characteristic (piecewise polynomial/exponential,
-  breakpoints yL/yU); optional series resistance `dpFixed_nominal` combined in series.
+- false (default): power law, `f_y = y_leak + (1 - y_leak) * y^n_open`, the opening
+  characteristic of MBL's two-way valves (`TwoWayLinear` at `n_open = 1`,
+  `TwoWayQuickOpening` at `n_open = 1/alpha`) applied to an air damper.
+- true: `Buildings.Fluid.Actuators.Dampers.Exponential` characteristic.
+
+`dpFixed_nominal` lumps the fixed resistance of the rest of the branch in series
+with the damper (both modes); set it to 0 for the damper alone.
 """
-@mtkmodel DamperExponential begin
+@mtkmodel Damper begin
     @structural_parameters begin
         from_dp::Bool                = true   # only from_dp = true supported
         linearized::Bool             = false  # placeholder

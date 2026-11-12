@@ -39,7 +39,7 @@ include(joinpath(@__DIR__, "5_model.jl"))
             dp_nominal    = dpAir_nominal,
             mflow_nominal = mAir_flow_nominal,
         )
-        dam = DamperExponential(;
+        dam = Damper(;
             mflow_nominal    = mAir_flow_nominal,
             dpDamper_nominal = dpAir_nominal,
             dpFixed_nominal  = 0.0,
