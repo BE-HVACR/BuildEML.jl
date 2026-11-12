@@ -22,7 +22,7 @@ Ports: `port_a`/`port_b` (water), `u` (RealInput, normalized), `Qflow` (RealOutp
         port_a = WaterPort()
         port_b = WaterPort()
 
-        vol = WaterMixingVolumeNode2(V = V_tank, if_steady_state = if_vol_steady_state)
+        vol = WaterMixingVolumeNodeN(N = 2, V = V_tank, if_steady_state = if_vol_steady_state)
         dp  = WaterPressureDrop(k = k_dp)
 
         u      = RealInput()
@@ -34,8 +34,8 @@ Ports: `port_a`/`port_b` (water), `u` (RealInput, normalized), `Qflow` (RealOutp
 
     @equations begin
         connect(port_a,    dp.port_a)
-        connect(dp.port_b, vol.port1)
-        connect(vol.port2, port_b)
+        connect(dp.port_b, vol.ports_1)
+        connect(vol.ports_2, port_b)
 
         gai.u           ~ u.u
         preHea.Q_flow.u ~ gai.y

@@ -1,5 +1,5 @@
 """
-Single water-to-air radiator element: extends `WaterMixingVolumeNode2` with a power-law UA
+Single water-to-air radiator element: extends `WaterMixingVolumeNodeN` with a power-law UA
 that splits heat output into convective (`heatPortCon`) and radiant (`heatPortRad`) fractions.
 """
 @mtkmodel RadiatorSingleElement begin
@@ -21,7 +21,7 @@ that splits heat output into convective (`heatPortCon`) and radiant (`heatPortRa
         heatsource = PrescribedHeatFlow()
     end
 
-    @extend port1, port2, T_mix, heatport = vol = WaterMixingVolumeNode2(V = V_element)
+    @extend ports_1, ports_2, T_mix, heatport = vol = WaterMixingVolumeNodeN(N = 2, V = V_element)
 
     @variables begin
         Q_con(t)
@@ -114,11 +114,11 @@ controls discretization granularity.
 
     @equations begin
         connect(port_a, res.port_a)
-        connect(res.port_b, elems[1].port1)
+        connect(res.port_b, elems[1].ports_1)
 
-        [connect(elems[i].port2, elems[i+1].port1) for i in 1:(N_elements-1)]...
+        [connect(elems[i].ports_2, elems[i+1].ports_1) for i in 1:(N_elements-1)]...
 
-        connect(elems[N_elements].port2, port_b)
+        connect(elems[N_elements].ports_2, port_b)
 
         [connect(elems[i].heatPortCon, heatPortCon) for i in 1:N_elements]...
         [connect(elems[i].heatPortRad, heatPortRad) for i in 1:N_elements]...

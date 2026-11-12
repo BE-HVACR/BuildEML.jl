@@ -7,7 +7,7 @@ using ModelingToolkit: t_nounits as t, D_nounits as D
 using ..Utils
 using ..Media
 
-export AirMixingVolumeNodeN, WaterMixingVolumeNode2
+export AirMixingVolumeNodeN, WaterMixingVolumeNodeN
 include("mixingvolumes.jl")
 export AirStateTapCore
 include("sensors.jl")

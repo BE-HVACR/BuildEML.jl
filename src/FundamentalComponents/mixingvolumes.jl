@@ -3,8 +3,8 @@
 # Air (N-port, arbitrary topology via port_role):
 #   AirMixingVolumeNodeN  — tracks T, w, p; set if_moisture_input=true to expose water_mflow (liquid water injection) and w_out ports
 #
-# Water (2-port only):
-#   WaterMixingVolumeNode2 — tracks T; port1 = inlet, port2 = outlet
+# Water (N-port, N >= 1, port flow direction not fixed):
+#   WaterMixingVolumeNodeN — tracks T; incompressible, so no pressure state
 #
 # If added liquid water (water_mflow) also carries energy, inject that energy via heatport at the instantiation site.
 
@@ -134,11 +134,9 @@ end
 
 
 
-"""
-Prefixed direction: port1 must be inlet and port2 must be outlet for this mixingvolume. 
-"""
-@mtkmodel WaterMixingVolumeNode2 begin
+@mtkmodel WaterMixingVolumeNodeN begin
     @structural_parameters begin
+        N::Int = 2
         if_steady_state::Bool = false
     end
 
@@ -147,8 +145,7 @@ Prefixed direction: port1 must be inlet and port2 must be outlet for this mixing
     end
 
     @components begin
-        port1 = WaterPort()
-        port2 = WaterPort()
+        ports = [WaterPort() for i in 1:N]
 
         heatport = HeatPort()
         self_heatport = HeatPort()
@@ -158,20 +155,14 @@ Prefixed direction: port1 must be inlet and port2 must be outlet for this mixing
 
     @variables begin
         T_mix(t), [guess = 313.15]
-
-        port1_T(t), [guess = 313.15]
-        port2_T(t), [guess = 313.15]
+        p_mix(t), [guess = 1.5e5]
     end
 
     @equations begin
-        port1.p ~ port2.p
-        0 ~ port1.mflow + port2.mflow
+        [ports[i].p ~ p_mix for i in 1:N]...
+        0 ~ sum(ports[i].mflow for i in 1:N)
 
-        port1.T_ofo ~ T_mix
-        port2.T_ofo ~ T_mix
-
-        port1_T ~ instream(port1.T_ofo)
-        port2_T ~ port2.T_ofo
+        [ports[i].T_ofo ~ T_mix for i in 1:N]...
 
         pretem.T.u ~ T_mix
         connect(self_heatport, pretem.port)
@@ -180,13 +171,12 @@ Prefixed direction: port1 must be inlet and port2 must be outlet for this mixing
 
         if !if_steady_state
             (rho_water * V * cp_water) * D(T_mix) ~
-                port1.mflow * cp_water * port1_T +
-                port2.mflow * cp_water * port2_T +
+                sum(smooth_max(ports[i].mflow, 0.0) * cp_water * (instream(ports[i].T_ofo) - T_mix) for i in 1:N) +
                 heatflowsen.Q_flow.u
         else
-            0 ~ port1.mflow * cp_water * port1_T +
-                port2.mflow * cp_water * port2_T +
+            0 ~ sum(smooth_max(ports[i].mflow, 0.0) * cp_water * (instream(ports[i].T_ofo) - T_mix) for i in 1:N) +
                 heatflowsen.Q_flow.u
         end
     end
 end
+
