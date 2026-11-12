@@ -9,7 +9,6 @@ carries outdoor humidity (true) or a fixed default w_par (false).
         if_infiltration::Bool = true
         use_w_in::Bool = true
         n_airports::Int = 2
-        port_role = [:inlet, :outlet]
     end
 
     @parameters begin
@@ -32,7 +31,6 @@ carries outdoor humidity (true) or a fixed default w_par (false).
     @components begin
         zon = AirMixingVolumeNodeN(
             N = n_airports,
-            port_role = port_role,
             if_steady_state = false,
             V = VZone,
             Qflow_const = 0.0,

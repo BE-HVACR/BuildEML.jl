@@ -79,7 +79,6 @@ end
         house = SimpleHouseCore(
             df_weather = df_weather,
             n_airports = 2,
-            port_role = [:inlet, :outlet],
         )
         loop  = HeatingLoopCore()
         ctrller_hea = HeatingLoopHysteresisController()

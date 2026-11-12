@@ -11,7 +11,6 @@ Moisture sources always present: occupant latent load (via `latentToMoisture`) a
         if_infiltration::Bool = true
         if_extra_moisture_input::Bool = false
         n_airports::Int = 2
-        port_role = [:inlet, :outlet]
     end
 
     @parameters begin
@@ -36,7 +35,6 @@ Moisture sources always present: occupant latent load (via `latentToMoisture`) a
         zon = AirMixingVolumeNodeN(
             if_moisture_input = true,
             N = n_airports,
-            port_role = port_role,
             if_steady_state = false,
             V = VZone,
             Qflow_const = 0.0,

@@ -14,7 +14,6 @@ df_weather = ReadEPW(epw_path)
 @mtkcompile sys = SimpleHouseCore(
     df_weather = df_weather,
     n_airports = 2,
-    port_role = [:inlet, :outlet],
     mAir_flow_infil = 1e-6,
     use_w_in = false
 )

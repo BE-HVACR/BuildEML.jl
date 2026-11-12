@@ -91,7 +91,6 @@ end
             df_weather = df_weather,
             if_infiltration = true,
             n_airports = 4,
-            port_role = [:inlet, :outlet, :inlet, :outlet],
         )
         loop_hea = HeatingLoopCore()
         ctrller_hea = HeatingLoopHysteresisController()
