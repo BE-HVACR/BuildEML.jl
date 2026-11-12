@@ -1,7 +1,7 @@
 include(joinpath(@__DIR__, "5_model.jl"))
 
 # SimpleHouse6: SimpleHouse5Core + free-cooling ventilation (HRV + fan + damper).
-# Changes from SimpleHouse5: the effective window area increases from 2 m^2 to 6 m^2, and the infiltration branch is replaced by ventilation.
+# Changes from SimpleHouse5: the effective window area increases from 2 m^2 to 6 m^2, and the neutral air flow branch is replaced by ventilation.
 # Supply  : souVent(p=101325, T=TOut) -> hexRec(a1->b1) -> fan -> dam -> zon.port1
 # Exhaust : zon.port2 -> hexRec(a2->b2) -> sinkVent(p=101325)
 

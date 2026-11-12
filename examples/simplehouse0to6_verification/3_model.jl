@@ -26,10 +26,10 @@ include(joinpath(@__DIR__, "2_model.jl"))
     end
 end
 
-# SimpleHouse3: SimpleHouse3Core + tiny infiltration to keep the air port numerically stable.
+# SimpleHouse3: SimpleHouse3Core + a tiny neutral air flow (zone-state air) to keep the air ports numerically stable.
 @mtkmodel SimpleHouse3 begin
     @parameters begin
-        mAir_flow_infil = 1e-5
+        mAir_flow_neutral = 1e-5
     end
 
     @extend weaBus, TOut, walRes, walCap, gaiWin, win, conRes, zon, RA_tap,
@@ -42,7 +42,7 @@ end
     end
 
     @equations begin
-        source.mflow.u ~ mAir_flow_infil
+        source.mflow.u ~ mAir_flow_neutral
         source.T_in.u  ~ zon.T_mix
         source.w_in.u  ~ zon.w_mix
         sink.p.u       ~ 101325.0

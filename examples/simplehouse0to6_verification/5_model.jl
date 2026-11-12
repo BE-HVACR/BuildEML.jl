@@ -1,6 +1,6 @@
 include(joinpath(@__DIR__, "4_model.jl"))
 
-# SimpleHouse5: SimpleHouse5Core + infiltration.
+# SimpleHouse5: SimpleHouse5Core + neutral air flow.
 
 @mtkmodel HeatingHysteresisCtrl5 begin
     @parameters begin
@@ -47,7 +47,7 @@ end
 
 @mtkmodel SimpleHouse5 begin
     @parameters begin
-        mAir_flow_infil = 1e-5
+        mAir_flow_neutral = 1e-5
     end
 
     @extend weaBus, TOut, walRes, walCap, gaiWin, win, conRes, zon, RA_tap,
@@ -62,7 +62,7 @@ end
     end
 
     @equations begin
-        source.mflow.u ~ mAir_flow_infil
+        source.mflow.u ~ mAir_flow_neutral
         source.T_in.u  ~ zon.T_mix
         source.w_in.u  ~ zon.w_mix
         sink.p.u       ~ 101325.0

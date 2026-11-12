@@ -79,6 +79,7 @@ end
         house = SimpleHouseCore(
             df_weather = df_weather,
             n_airports = 2,
+            mAir_flow_infil = 1e-6,
         )
         loop  = HeatingLoopCore()
         ctrller_hea = HeatingLoopHysteresisController()

@@ -34,27 +34,27 @@ isfile(csv_path) || error("Required CSV not found: $(csv_path)")
 
 df_modelica = load_modelica_csv(csv_path)
 modelica_time_s = df_modelica.time_s
-tzone_modelica_C = df_modelica[!, "zon.T|degC"]
+Tzone_modelica_C = df_modelica[!, "zon.T|degC"]
 
 prob = ODEProblem(sys, u0, tspan)
 sol = solve(prob, Rodas5P(); saveat = modelica_time_s, abstol = 1e-6, reltol = 1e-4)
 
-tzone_sim_C = unit_K2C.(sol[sys.house.RA_tap.T.u])
+Tzone_sim_C = unit_K2C.(sol[sys.house.RA_tap.T.u])
 hea_signal  = sol[sys.ctrller_hea.y]
 df_sim = DataFrame(
     time_s      = round.(Int, sol.t),
-    Tzone_sim_C = tzone_sim_C,
+    Tzone_sim_C = Tzone_sim_C,
     hea_on      = hea_signal .> 0.5,
 )
 df_mbl = DataFrame(
     time_s      = round.(Int, modelica_time_s),
-    Tzone_mbl_C = tzone_modelica_C,
+    Tzone_mbl_C = Tzone_modelica_C,
 )
 df_cmp = innerjoin(df_sim, df_mbl, on = :time_s)
 nrow(df_cmp) == 0 && error("No matched timestamps between `sol.t` and Modelica CSV.")
 
-rmse_tzone = sqrt(mean((df_cmp.Tzone_sim_C .- df_cmp.Tzone_mbl_C) .^ 2))
-mbe_tzone  = mean(df_cmp.Tzone_sim_C .- df_cmp.Tzone_mbl_C)
+rmse_Tzone = sqrt(mean((df_cmp.Tzone_sim_C .- df_cmp.Tzone_mbl_C) .^ 2))
+mbe_Tzone  = mean(df_cmp.Tzone_sim_C .- df_cmp.Tzone_mbl_C)
 
 time_s = Float64.(df_cmp.time_s)
 t_max = time_s[end]
@@ -76,7 +76,7 @@ end
 
 p_top = plot(
     t_plot, df_cmp.Tzone_sim_C;
-    label  = @sprintf("This work (RMSE: %.2f °C, MBE: %.2f °C)", rmse_tzone, mbe_tzone),
+    label  = @sprintf("This work (RMSE: %.2f °C, MBE: %.2f °C)", rmse_Tzone, mbe_Tzone),
     title  = "SimpleHouse, heating only",
     ylabel = "Temperature [°C]",
     xlims  = (0, t_end_plt),
