@@ -2,7 +2,12 @@
 Ideal constant-pressure fan (FlowControlled_dp-type).
 
 Ports: `port_a` (inlet), `port_b` (outlet), `dp_set` (pressure rise [Pa]), `power` (electrical power [W]).
-Air state (T, w) passes through unchanged; pressure rise follows `dp_set.u`.
+Humidity ratio passes through unchanged; pressure rise follows `dp_set.u`.
+`if_power_to_medium` and `if_motor_cooled_by_fluid` are MBL's `addPowerToMedium` and `motorCooledByFluid`:
+- `if_power_to_medium = false`: adiabatic; `if_motor_cooled_by_fluid` is ignored.
+- `if_power_to_medium = true`:
+  - `if_motor_cooled_by_fluid = true`: the electrical power is added to the stream.
+  - `if_motor_cooled_by_fluid = false`: the shaft power `power * eff_motor_nominal` is added to the stream.
 
 Power is computed from dp × Vflow and efficiency. If `if_dynamic_eff = true`,
 `variablefan_type` selects the PLR-based curve: "VSD" (default), "InletVane", or "OutletDamper".
@@ -11,6 +16,8 @@ Power is computed from dp × Vflow and efficiency. If `if_dynamic_eff = true`,
     @structural_parameters begin
         if_dynamic_eff::Bool = false
         variablefan_type::String = "VSD"
+        if_power_to_medium::Bool = true
+        if_motor_cooled_by_fluid::Bool = true
     end
 
     @parameters begin
@@ -21,6 +28,7 @@ Power is computed from dp × Vflow and efficiency. If `if_dynamic_eff = true`,
         eff_motor_nominal     = 0.7            # [-]
         eff_tot_nominal       = 0.7 * 0.7     # [-]
         power_nominal = 200.0 * 0.2 / (1.2 * (0.7 * 0.7))  # [W]
+        mcp_min       = 1e-4           # [W/K] regularization lower bound
     end
 
     @components begin
@@ -36,10 +44,25 @@ Power is computed from dp × Vflow and efficiency. If `if_dynamic_eff = true`,
         dp_fan(t)  # [Pa]
         power_(t)  # [W]
         PLR(t)
+        T_in(t),  [guess = 293.15]
+        T_out(t), [guess = 293.15]
+        mcp_eff(t)  # [W/K]
     end
 
     @equations begin
-        port_b.T_ofo ~ instream(port_a.T_ofo)
+        T_in ~ instream(port_a.T_ofo)
+        mcp_eff ~ smooth_max(smooth_abs(mflow * cp_da), mcp_min)
+        if if_power_to_medium
+            if if_motor_cooled_by_fluid
+                T_out ~ T_in + power_ / mcp_eff
+            else
+                T_out ~ T_in + (power_ * eff_motor_nominal) / mcp_eff
+            end
+        else
+            T_out ~ T_in
+        end
+
+        port_b.T_ofo ~ T_out
         port_b.w_ofo ~ instream(port_a.w_ofo)
         port_a.T_ofo ~ port_a.T_guess
         port_a.w_ofo ~ port_a.w_guess
@@ -80,6 +103,8 @@ Power is computed from hydraulic work and efficiency (constant or PLR-based via 
 @mtkmodel Pump_mflow begin
     @structural_parameters begin
         if_dynamic_eff::Bool = false
+        if_power_to_medium::Bool = true
+        if_motor_cooled_by_fluid::Bool = true
     end
 
     @parameters begin
@@ -89,6 +114,7 @@ Power is computed from hydraulic work and efficiency (constant or PLR-based via 
         eff_motor_nominal     = 0.7    # [-]
         eff_tot_nominal       = eff_hydraulic_nominal * eff_motor_nominal  # [-]
         power_nominal         = mflow_nominal * dp_nominal / (rho_water * eff_tot_nominal)  # [W]
+        mcp_min               = 1e-4   # [W/K] regularization lower bound
     end
 
     @components begin
@@ -106,10 +132,25 @@ Power is computed from hydraulic work and efficiency (constant or PLR-based via 
         eff_hydraulic(t)  # [-]
         eff_motor(t)      # [-]
         power_(t)         # [W]
+        T_in(t),  [guess = 313.15]
+        T_out(t), [guess = 313.15]
+        mcp_eff(t)        # [W/K]
     end
 
     @equations begin
-        port_b.T_ofo ~ instream(port_a.T_ofo)
+        T_in ~ instream(port_a.T_ofo)
+        mcp_eff ~ smooth_max(smooth_abs(mflow * cp_water), mcp_min)
+        if if_power_to_medium
+            if if_motor_cooled_by_fluid
+                T_out ~ T_in + power_ / mcp_eff
+            else
+                T_out ~ T_in + (power_ * eff_motor_nominal) / mcp_eff
+            end
+        else
+            T_out ~ T_in
+        end
+
+        port_b.T_ofo ~ T_out
         port_a.T_ofo ~ port_a.T_guess
 
         mflow ~ mflow_set.u
