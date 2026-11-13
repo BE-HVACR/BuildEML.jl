@@ -67,7 +67,7 @@ p_wal_top = plot(
     xticks                   = (xtk, fill("", length(xtk))),
     color                    = :green,
     linewidth                = 3,
-    legend                   = :bottom,
+    legend                   = (0.4, 0.15),
     background_color_legend  = RGBA(1, 1, 1, 0.6),
 )
 plot!(p_wal_top, time_hr, df_cmp.walT_mbl_C;

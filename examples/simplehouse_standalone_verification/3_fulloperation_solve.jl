@@ -133,7 +133,7 @@ p_zoom = plot(
     t_plot[zi], df_cmp.Tzone_sim_C[zi];
     label                   = "This work",
     title                   = "12 h detail (SimpleHouse)",
-    xlabel                  = "Time [hr]",
+    xlabel                  = "Time [hr] (Mar 23-24)",  # reminder: this date should match the window assigned in zoom_hr
     ylabel                  = "Temperature [°C]",
     color                   = :green,
     linewidth               = 3,

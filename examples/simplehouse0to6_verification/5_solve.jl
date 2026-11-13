@@ -115,24 +115,25 @@ fig = plot(p_top, p_bot, layout = grid(2, 1, heights = [0.67, 0.33]), size = (60
     left_margin = 0mm, right_margin = 3mm)
 display(fig)
 
-zoom_hr = (462.0, 474.0)
-zi = findall(t -> zoom_hr[1] <= t <= zoom_hr[2], t_plot)
+zoom_hr = (130.0, 142.0)
+t_hr = time_s ./ 3600.0
+zi = findall(t -> zoom_hr[1] <= t <= zoom_hr[2], t_hr)
 
 fig_zoom = plot(
-    t_plot[zi], df_cmp.zonT_sim_C[zi];
+    t_hr[zi], df_cmp.zonT_sim_C[zi];
     label                   = "This work",
     title                   = "12 h detail (SimpleHouse5)",
-    xlabel                  = "Time [hr]",
+    xlabel                  = "Time [hr] (Jan 6)",  # reminder: this date should match the window assigned in zoom_hr
     ylabel                  = "Temperature [°C]",
     color                   = :green,
     linewidth               = 3,
-    legend                  = :topright,
+    legend                  = :topleft,
     background_color_legend = RGBA(1, 1, 1, 0.6),
     size                    = (600, 300),
     left_margin             = 3mm,
     right_margin            = 3mm,
 )
-plot!(fig_zoom, t_plot[zi], df_cmp.zonT_mbl_C[zi];
+plot!(fig_zoom, t_hr[zi], df_cmp.zonT_mbl_C[zi];
     label     = "MBL",
     color     = :blue,
     linewidth = 1.5,
