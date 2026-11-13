@@ -12,6 +12,10 @@ Two modes via `use_exponential`:
 
 `dpFixed_nominal` lumps the fixed resistance of the rest of the branch in series
 with the damper (both modes); set it to 0 for the damper alone.
+
+Both modes regularize the flow below `deltaM * mflow_nominal` with the polynomial
+transition of MBL's `basicFlowFunction_dp`; `deltaM` is MBL's `deltaM`, with the
+same default (0.3).
 """
 @mtkmodel Damper begin
     @structural_parameters begin
@@ -37,6 +41,7 @@ with the damper (both modes); set it to 0 for the damper alone.
         k1               = 0.45      # [-] loss coefficient at y=1
         l                = 1e-4      # [-] leakage ratio k(y=0)/k(y=1)
 
+        deltaM           = 0.3        # [-] turbulent transition at deltaM * mflow_nominal
         dp_eps           = 1e-3       # [Pa] regularization
     end
 
@@ -53,8 +58,10 @@ with the damper (both modes); set it to 0 for the damper alone.
         y_eff(t)       # [-]   clipped opening command
         sgn_dp(t)      # [-]   sign of dp
         k_dam(t)       # [(kg·m)^0.5 Pa^-0.5]
-        k_tot(t)       # [(kg·m)^0.5 Pa^-0.5]
+        k_tot(t), [irreducible = true, guess = 0.01]  # [(kg·m)^0.5 Pa^-0.5]
         kThetaSqRt(t)  # [-]   sqrt of loss coefficient (exponential mode)
+        dp_turb(t)     # [Pa]  turbulent transition pressure difference
+        dp_norm(t)     # [-]   dp / dp_turb
     end
 
     @equations begin
@@ -97,21 +104,22 @@ with the damper (both modes); set it to 0 for the damper alone.
         else
             f_y ~ y_leak + (1.0 - y_leak) * y_eff^n_open
             k_dam ~ 0.0
-            k_tot ~ 0.0
+            k_tot ~ mflow_nominal * f_y /
+                    sqrt(smooth_max(dpDamper_nominal + dpFixed_nominal, dp_eps))
             kThetaSqRt ~ 0.0
         end
 
         dp ~ port_a.p - port_b.p
         sgn_dp ~ dp / (smooth_abs(dp) + dp_eps)
 
-        if use_exponential
-            m_flow ~ k_tot * sqrt(smooth_abs(dp)) * sgn_dp
-        else
-            m_flow ~ mflow_nominal *
-                     f_y *
-                     sqrt(smooth_abs(dp) / smooth_max(dpDamper_nominal + dpFixed_nominal, dp_eps)) *
-                     sgn_dp
-        end
+        dp_turb ~ (deltaM * mflow_nominal / smooth_max(k_tot, 1e-12))^2
+        dp_norm ~ dp / dp_turb
+        m_flow ~ ifelse(
+            smooth_abs(dp) * smooth_max(k_tot, 1e-12)^2 > (deltaM * mflow_nominal)^2,
+            k_tot * sqrt(smooth_abs(dp)) * sgn_dp,
+            (1.40625 + (0.15625 * dp_norm^2 - 0.5625) * dp_norm^2) *
+                (deltaM * mflow_nominal) * dp_norm,
+        )
 
         port_a.mflow ~ m_flow
         port_a.mflow + port_b.mflow ~ 0
