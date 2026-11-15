@@ -35,6 +35,8 @@ using ModelingToolkitStandardLibrary.Blocks: Constant, RealInput, RealOutput
         water_mflow_ = RealInput()
         if if_moisture_input
             water_mflow = RealInput()
+        end
+        if if_moisture_input
             w_out = RealOutput()
         end
     end
