@@ -1,33 +1,51 @@
+# Moist air properties on a dry-air mass basis.
+#
+# Refer to the MBL v11:
+# - p_air_ref, rho_air_ref, rho_p: Buildings.Media.Air reference_p, dStp, and its density law
+# - cp_da, cp_vapor, h_fg, k_mair: Buildings.Utilities.Psychrometrics.Constants
+# - R_da: MSL v4 Modelica.Media.IdealGases.Common.SingleGasesData.Air R_s
+# - h_g, h_da, h_f, h_Tw, cp_moistair_w, T_hw: Buildings.Media.Air enthalpy relations
+# - w_TRHp, w_sat: Buildings.Utilities.Psychrometrics.Functions.X_pSatpphi
+# - p_saturation, T_dew: Buildings.Utilities.Psychrometrics.Functions.saturationPressureLiquid,
+#   of which T_dew is the inverse
+# - wetbulb_TRH: Buildings.Utilities.Psychrometrics.TWetBul_TDryBulPhi
+#   with approximateWetBulb = true
+# Not from MBL:
+# - rho_Twp
+
 const p_air_ref = 101325.0   # Pa
-const patm = 101325.0   # Pa
-const rho_air_ref = 1.2   # kg/m3
-const cp_da = 1005.45   # J/kg_da/K
+const rho_air_ref = 1.2      # kg/m3
+const patm = 101325.0        # Pa, standard atmosphere
+const cp_da = 1006.0         # J/kg_da/K
+const cp_vapor = 1860.0      # J/kg_w/K
+const h_fg = 2501014.5       # J/kg_w, latent heat of vaporization at 0 degC
+const k_mair = 0.6219647130774989   # [-] molar mass ratio, water vapor / dry air
+const R_da = 287.0512249529787      # J/kg_da/K
 
-# ASHRAE Handbook - Fundamentals, Chapter 1 "Psychrometrics"
-h_g(T) = 1e3 * (2501 + 1.86 * (T - 273.15))   # J/kg_w
-h_da(T) = cp_da * (T - 273.15)                # J/kg_da
-h_f(T) = 4186 * (T - 273.15)                  # J/kg_w
+# enthalpy
+h_g(T) = h_fg + cp_vapor * (T - 273.15)   # J/kg_w
+h_da(T) = cp_da * (T - 273.15)            # J/kg_da
+h_f(T) = cp_water * (T - 273.15)          # J/kg_w
 
-h_Tw(T, w) = cp_da * (T - 273.15) + w * 1e3 * (2501 + 1.86 * (T - 273.15))  # J/kg_da
-cp_moistair_w(w) = cp_da + w * 1.86 * 1e3  # dh/dT on a dry-air basis
-T_hw(h, w) = (h / 1e3 - 2501 * w) / (1.005 + 1.86 * w) + 273.15  # K
+h_Tw(T, w) = cp_da * (T - 273.15) + w * (h_fg + cp_vapor * (T - 273.15))  # J/kg_da
+cp_moistair_w(w) = cp_da + w * cp_vapor  # dh/dT on a dry-air basis
+T_hw(h, w) = (h - h_fg * w) / (cp_da + cp_vapor * w) + 273.15  # K
 
-rho_Twp(T, w, p) = p / (287.05 * T * (1 + 1.6078 * w))  # kg_da/m3
+# density
+rho_Twp(T, w, p) = p / (R_da * T * (1 + w / k_mair))  # kg_da/m3
 rho_p(p) = p * rho_air_ref / p_air_ref
 
-w_TRHp(T, RH, p) = 0.621945 * (RH * p_saturation(T)) / (p - (RH * p_saturation(T)))  # kg_w/kg_da
+# humidity and saturation
+w_TRHp(T, RH, p) = k_mair * (RH * p_saturation(T)) / (p - (RH * p_saturation(T)))  # kg_w/kg_da
 
-# Modelica Buildings Library, Buildings.Utilities.Psychrometrics.Functions.saturationPressureLiquid
 p_saturation(T) = 611.657 * exp(17.2799 - 4102.99 / (T - 35.719))  # Pa
 
-
-# Stull, R., 2011: Wet-Bulb Temperature from Relative Humidity and Air Temperature. J. Appl. Meteor. Climatol., 50, 2267-2269,  https://doi.org/10.1175/JAMC-D-11-0143.1.
 wetbulb_TRH(T, RH) = 273.15 + (T - 273.15) * atan(0.151977 * sqrt(100 * RH + 8.313659)) +
     atan((T - 273.15) + 100 * RH) - atan(100 * RH - 1.676331) +
     0.00391838 * (100 * RH)^(3 / 2) * atan(0.023101 * 100 * RH) - 4.686035  # K
 
-w_sat(T) = 0.621945 * p_saturation(T) / (patm - p_saturation(T))  # kg_w/kg_da
+w_sat(T) = k_mair * p_saturation(T) / (patm - p_saturation(T))  # kg_w/kg_da
 
-T_dew(w) = let pw = w * p_air_ref / (0.621945 + w)
+T_dew(w) = let pw = w * p_air_ref / (k_mair + w)
     35.719 + 4102.99 / (17.2799 - log(pw / 611.657))
 end  # K
