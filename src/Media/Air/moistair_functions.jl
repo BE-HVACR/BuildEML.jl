@@ -10,6 +10,8 @@
 #   of which T_dew is the inverse
 # - wetbulb_TRH: Buildings.Utilities.Psychrometrics.TWetBul_TDryBulPhi
 #   with approximateWetBulb = true
+# - wetbulb_balance_Twp: Buildings.Utilities.Psychrometrics.TWetBul_TDryBulXi
+#   with approximateWetBulb = false (wetbulb_Twp solves it with Newton iterations)
 # Not from MBL:
 # - rho_Twp
 
@@ -48,4 +50,24 @@ w_sat(T) = k_mair * p_saturation(T) / (patm - p_saturation(T))  # kg_w/kg_da
 
 T_dew(w) = let pw = w * p_air_ref / (k_mair + w)
     35.719 + 4102.99 / (17.2799 - log(pw / 611.657))
+end  # K
+
+# wetbulb_balance_Twp(T_wb, T, w, p) = 0 defines the wet-bulb temperature implicitly
+function wetbulb_balance_Twp(T_wb, T, w, p)
+    psat = p_saturation(T_wb)
+    w_sb = k_mair * psat / (p - psat)
+    return (T_wb - 273.15) * (cp_da + w_sb * cp_vapor + (w - w_sb) * cp_water) -
+           ((T - 273.15) * (cp_da + w * cp_vapor) + (w - w_sb) * h_fg)
+end
+
+function wetbulb_Twp(T, w, p = patm)
+    T_wb = T
+    for _ in 1:50
+        r = wetbulb_balance_Twp(T_wb, T, w, p)
+        dr = (wetbulb_balance_Twp(T_wb + 1e-6, T, w, p) - r) / 1e-6
+        step = r / dr
+        T_wb -= step
+        abs(step) < 1e-10 && return T_wb
+    end
+    error("wetbulb_Twp did not converge for T=$(T), w=$(w), p=$(p)")
 end  # K
