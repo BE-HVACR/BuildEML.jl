@@ -30,6 +30,37 @@ smooth_clamp(x, lo, hi; δ = 1e-6) = smooth_max(lo, smooth_min(x, hi; δ = δ); 
 smooth_clamp01(x; δ = 1e-6) = smooth_clamp(x, 0.0, 1.0; δ = δ)
 
 """
+    reg_step(x, y1, y2, x_small)
+    reg_max(x1, x2, deltaX)
+    reg_min(x1, x2, deltaX)
+    reg_limit(x, lo, hi, deltaX)
+    reg_heaviside(x, delta)
+    splice_fun(pos, neg, x, deltax)
+
+MBL Buildings.Utilities.Math.Functions regStep, smoothMax, smoothMin,
+smoothLimit, smoothHeaviside and spliceFunction.
+Unlike the smooth_* helpers above, these are exact outside their transition regions.
+"""
+reg_step(x, y1, y2, x_small) = ifelse(x > x_small, y1,
+    ifelse(x < -x_small, y2,
+        (x / x_small) * ((x / x_small)^2 - 3) * (y2 - y1) / 4 + (y1 + y2) / 2))
+reg_max(x1, x2, deltaX) = reg_step(x1 - x2, x1, x2, deltaX)
+reg_min(x1, x2, deltaX) = reg_step(x2 - x1, x1, x2, deltaX)
+reg_limit(x, lo, hi, deltaX) = reg_min(reg_max(x, lo + deltaX, deltaX / 10), hi - deltaX, deltaX / 10)
+function reg_heaviside(x, delta)
+    dx = 0.5 * x / delta
+    y = 0.5 + dx * (1.875 + dx * dx * (-5 + 6 * dx * dx))
+    return ifelse(y > 1.0, 1.0, ifelse(y < 0.0, 0.0, y))
+end
+function splice_fun(pos, neg, x, deltax)
+    scaled = x / deltax
+    y = (tanh(tan(clamp(scaled, -0.9999999999, 0.9999999999) * (pi / 2))) + 1) / 2
+    return ifelse(scaled <= -0.9999999999, neg,
+        ifelse(scaled >= 0.9999999999, pos,
+            pos * y + (1 - y) * neg))
+end
+
+"""
     smooth_on_eps(u; u_on=1.0, u_eps=1e-5, δ=1e-2, u_th=nothing)
 
 Map `u` to a smooth activation level between `u_eps` and `u_on`.

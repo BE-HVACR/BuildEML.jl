@@ -24,5 +24,11 @@ export WaterHeaterCooler_Q
 include("HeatExchangers/Prescribed/water_heatercooler.jl")
 export HPHeating_Power_TCon, HPCooling_Power_TEva, ConstantCOP_Power
 include("ThermalSources/HP_COP_power.jl")
+export biquadratic, extended_polynomial, DX_CURVE_I, DX_CURVE_II, DX_CURVE_III, dx_stage, DXCapacityAirSource
+include("DXSystems/dx_performance.jl")
+export dx_uacp, speed_shift, DXCoolingCore
+include("DXSystems/dx_cooling_core.jl")
+export DXCoolingSingleSpeed, DXCoolingVariableSpeed
+include("DXSystems/dx_cooling_airsource.jl")
 
 end

@@ -8,6 +8,7 @@ using DataInterpolations
 using ModelingToolkit: t_nounits as t, D_nounits as D
 
 export smooth_H, smooth_xH, smooth_max, smooth_min, smooth_abs, smooth_sign, smooth_clamp, smooth_clamp01, smooth_on_eps, snapconst, α_soft, soft_blend
+export reg_step, reg_max, reg_min, reg_limit, reg_heaviside, splice_fun
 include("smooth.jl")
 
 export build_tspan, dt_seconds
