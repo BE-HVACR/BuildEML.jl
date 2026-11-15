@@ -12,7 +12,7 @@ export Fan_dp, Pump_mflow
 include("FluidMechanics/movers.jl")
 export Damper
 include("FluidMechanics/actuators.jl")
-export WaterPressureDrop
+export WaterPressureDrop, AirPressureDrop
 include("FluidMechanics/resistances.jl")
 export Constant_HX
 include("HeatExchangers/BiFluid/air2air_hx.jl")
