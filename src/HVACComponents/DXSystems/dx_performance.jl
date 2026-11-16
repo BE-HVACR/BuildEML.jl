@@ -69,6 +69,7 @@ dx_stage(; Qflow_nominal, COP_nominal, SHR_nominal, mflow_nominal,
         perf_curves, spe, TEvaIn_nominal, phiIn_nominal, p_nominal)
 
 dx_mflow_nominal_last(stages) = stages[end].mflow_nominal
+dx_speRat_first(stages) = stages[1].spe / stages[end].spe
 
 """
 Cooling capacity and EIR of a single-stage DX coil from performance curves.

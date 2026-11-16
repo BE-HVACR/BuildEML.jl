@@ -12,6 +12,7 @@ smooth_xH(x, δ, t0) = (x - t0) * smooth_H(x, δ, t0)
 
 """
     smooth_max(a, b; δ=1e-6)
+    smooth_max_upper(a, b; δ=1e-6)
     smooth_min(a, b; δ=1e-6)
     smooth_abs(x; δ=1e-6)
     smooth_sign(x; δ=1e-6)
@@ -21,8 +22,10 @@ smooth_xH(x, δ, t0) = (x - t0) * smooth_H(x, δ, t0)
 Common smooth algebraic helpers.
 
 These functions provide smooth approximations of `max`, `min`, `abs`, `sign`, and interval clamping operations.
+`smooth_max_upper` equals `max(a, b)` when `|a - b| >= δ` and is not below it inside.
 """
 smooth_max(a, b; δ = 1e-6) = b + smooth_xH(a - b, δ, 0.0)
+smooth_max_upper(a, b; δ = 1e-6) = ifelse(a - b >= δ, a, ifelse(a - b <= -δ, b, b + (a - b + δ)^2 / (4δ)))
 smooth_min(a, b; δ = 1e-6) = a + b - smooth_max(a, b; δ = δ)
 smooth_abs(x; δ = 1e-6) = smooth_max(x, -x; δ = δ)
 smooth_sign(x; δ = 1e-6) = x / sqrt(x^2 + δ^2)

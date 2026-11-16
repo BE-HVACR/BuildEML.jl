@@ -63,7 +63,8 @@ end
 @mtkmodel VariableSpeedValidation begin
     @components begin
         sou = ValidationSource()
-        varSpeDX = DXCoolingVariableSpeed(stages = STAGES, dp_nominal = 1000.0)
+        varSpeDX = DXCoolingVariableSpeed(stages = STAGES, dp_nominal = 1000.0,
+            if_hysteresis_shutoff = true)
         sin = AirBoundary(role = :sink, mode = :pressure)
     end
     @equations begin

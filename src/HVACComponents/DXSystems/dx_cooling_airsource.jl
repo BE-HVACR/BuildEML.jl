@@ -94,16 +94,30 @@ Ports: `port_a` (inlet), `port_b` (outlet), `speRat` (compressor speed ratio
 <= 0), `QSen_flow`, `QLat_flow`, `P` (electric power [W]).
 
 `stages` is a vector of `dx_stage` records ordered by speed; capacity, EIR and
-UA/cp are interpolated by speed between them. The coil switches off when
-`speRat` drops below `minSpeRat - speRatDeaBan / 2` and on again above
-`minSpeRat + speRatDeaBan / 2`. This hysteresis relaxes to its target with the
-time constant `tau_on`. The pressure drop and the mixing volume use the
-nominal air flow of the last stage.
+UA/cp are interpolated by speed between them. The pressure drop and the mixing
+volume use the nominal air flow of the last stage.
+
+`if_hysteresis_shutoff` sets the behavior at low speed. `speRat_1` below is
+the speed ratio of the first stage.
+
+- `false` (default, cycling behavior): below `speRat_1`, the coil cycles at the first stage.
+  Total cooling, condensed water and power are the first-stage values times
+  the runtime fraction `PLR = speRat / speRat_1`. Within `deltaSpeRat` of
+  `speRat_1`, the coil runs at `smooth_max_upper(speRat, speRat_1)` and `PLR`
+  is `speRat` divided by it, so `PLR` does not exceed 1. The cycling losses at
+  start-up are not modeled yet (EnergyPlus corrects them with a part-load
+  fraction curve).
+- `true` (MBL hysteresis behavior): the coil runs at the speed `speRat`, and below `speRat_1` the
+  performance is interpolated toward zero at zero speed. The coil switches off
+  when `speRat` drops below `minSpeRat - speRatDeaBan / 2` and on again above
+  `minSpeRat + speRatDeaBan / 2`. This hysteresis relaxes to its target with
+  the time constant `tau_on`.
 """
 @mtkmodel DXCoolingVariableSpeed begin
     @structural_parameters begin
         stages = [dx_stage(Qflow_nominal = -21000.0, COP_nominal = 3.0,
             SHR_nominal = 0.8, mflow_nominal = 1.5)]
+        if_hysteresis_shutoff::Bool = false
         if_steady_state::Bool = false
     end
 
@@ -111,9 +125,13 @@ nominal air flow of the last stage.
         dp_nominal = 100.0     # [Pa]
         tau = 30.0             # [s]
         deltaM = 0.3           # [-]
-        minSpeRat = 0.2        # [-]
-        speRatDeaBan = 0.05    # [-]
-        tau_on = 0.01          # [s]
+        if if_hysteresis_shutoff
+            minSpeRat = 0.2        # [-]
+            speRatDeaBan = 0.05    # [-]
+            tau_on = 0.01          # [s]
+        else
+            deltaSpeRat = 0.01     # [-]
+        end
     end
 
     @components begin
@@ -137,7 +155,11 @@ nominal air flow of the last stage.
     end
 
     @variables begin
-        on_sta(t), [guess = 0.0]
+        if if_hysteresis_shutoff
+            on_sta(t), [guess = 0.0]
+        else
+            PLR(t)    # [-]
+        end
     end
 
     @equations begin
@@ -145,23 +167,32 @@ nominal air flow of the last stage.
         connect(preDro.port_b, vol.airport_1)
         connect(vol.airport_2, port_b)
 
-        tau_on * D(on_sta) ~ ifelse(speRat.u >= minSpeRat + speRatDeaBan / 2, 1.0,
-            ifelse(speRat.u <= minSpeRat - speRatDeaBan / 2, 0.0, on_sta)) - on_sta
-        core.on.u ~ on_sta
-        connect(speRat, core.speRat)
         connect(TConIn, core.TConIn)
         core.T_in.u ~ preDro.T_in
         core.w_in.u ~ preDro.w_in
         core.p_in.u ~ port_a.p
         core.mflow.u ~ preDro.mflow
 
-        preHea.Q_flow.u ~ core.Qflow.u
-        connect(preHea.port, vol.heatport)
-        vol.water_mflow.u ~ core.mWat_flow.u
+        if if_hysteresis_shutoff
+            tau_on * D(on_sta) ~ ifelse(speRat.u >= minSpeRat + speRatDeaBan / 2, 1.0,
+                ifelse(speRat.u <= minSpeRat - speRatDeaBan / 2, 0.0, on_sta)) - on_sta
+            core.on.u ~ on_sta
+            core.speRat.u ~ speRat.u
+            Qflow.u ~ core.Qflow.u
+            vol.water_mflow.u ~ core.mWat_flow.u
+        else
+            core.on.u ~ 1.0
+            core.speRat.u ~ smooth_max_upper(speRat.u, dx_speRat_first(stages); δ = deltaSpeRat)
+            PLR ~ speRat.u / core.speRat.u
+            Qflow.u ~ PLR * core.Qflow.u
+            vol.water_mflow.u ~ PLR * core.mWat_flow.u
+        end
 
-        Qflow.u ~ core.Qflow.u
-        QSen_flow.u ~ core.SHR.u * core.Qflow.u
-        QLat_flow.u ~ (1 - core.SHR.u) * core.Qflow.u
-        P.u ~ -core.EIR.u * core.Qflow.u
+        preHea.Q_flow.u ~ Qflow.u
+        connect(preHea.port, vol.heatport)
+
+        QSen_flow.u ~ core.SHR.u * Qflow.u
+        QLat_flow.u ~ (1 - core.SHR.u) * Qflow.u
+        P.u ~ -core.EIR.u * Qflow.u
     end
 end
