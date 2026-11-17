@@ -112,12 +112,16 @@ the speed ratio of the first stage.
   when `speRat` drops below `minSpeRat - speRatDeaBan / 2` and on again above
   `minSpeRat + speRatDeaBan / 2`. This hysteresis relaxes to its target with
   the time constant `tau_on`.
+
+`if_switching_stage_interpolation` is passed to `DXCoolingCore`. With `true`
+there and `if_hysteresis_shutoff = true`, the coil reproduces MBL.
 """
 @mtkmodel DXCoolingVariableSpeed begin
     @structural_parameters begin
         stages = [dx_stage(Qflow_nominal = -21000.0, COP_nominal = 3.0,
             SHR_nominal = 0.8, mflow_nominal = 1.5)]
         if_hysteresis_shutoff::Bool = false
+        if_switching_stage_interpolation::Bool = false
         if_steady_state::Bool = false
     end
 
@@ -145,7 +149,8 @@ the speed ratio of the first stage.
         vol = AirMixingVolumeNodeN(
             N = 2, V = dx_mflow_nominal_last(stages) * tau / rho_air_ref,
             if_moisture_input = true, if_steady_state = if_steady_state)
-        core = DXCoolingCore(stages = stages)
+        core = DXCoolingCore(stages = stages,
+            if_switching_stage_interpolation = if_switching_stage_interpolation)
         preHea = PrescribedHeatFlow()
 
         Qflow     = RealOutput()    # [W]

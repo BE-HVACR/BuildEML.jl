@@ -61,34 +61,54 @@ function dx_uacp(Qflow_nominal, SHR_nominal, mflow_nominal,
 end
 
 """
-    speed_shift(spe, speSet, u)
+    speed_shift(spe, speSet, u; mono = nothing, deltaLim = nothing, deltaCross = 1e-3)
 
 Value at compressor speed `spe` interpolated from the stage values `u` at the
 stage speeds `speSet`, with an extra point (0, 0) at zero speed, as in MBL's
 speedShift: a cubic Hermite spline whose derivatives are limited to keep a
 monotonic sequence monotonic, extrapolated linearly outside the data. Works
 on numbers and on symbolic expressions.
+
+`mono` decides whether the derivatives are limited. With `nothing`, as in MBL,
+they are limited when `u` is monotonic, which is checked on every evaluation.
+
+`deltaLim` sets how the limit starts. With `nothing`, as in MBL, it starts
+sharply when `alpha^2 + beta^2` exceeds 9. With a number, it starts smoothly
+over `alpha^2 + beta^2` from `9 - deltaLim` to `9 + deltaLim`, and the
+squared slope between two stages in the limit is raised by `deltaCross^2`
+times the mean squared slope, so that the limit also stays smooth where two
+stage values cross.
 """
-function speed_shift(spe, speSet, u)
+function speed_shift(spe, speSet, u; mono = nothing, deltaLim = nothing, deltaCross = 1e-3)
     x = vcat(0.0, speSet)
     y = vcat(0.0, collect(u))
     n = length(x)
 
     delta = [(y[i + 1] - y[i]) / (x[i + 1] - x[i]) for i in 1:(n - 1)]
+    eps2 = deltaLim === nothing ? 0.0 : deltaCross^2 * sum(abs2, delta) / (n - 1) + floatmin(Float64)
     if n == 2
         d = [delta[1], delta[1]]
     else
         d = vcat(delta[1], [(delta[i - 1] + delta[i]) / 2 for i in 2:(n - 1)], delta[n - 1])
-        inc = prod(ifelse(y[i] <= y[i + 1], 1.0, 0.0) for i in 1:(n - 1))
-        dec = prod(ifelse(y[i] >= y[i + 1], 1.0, 0.0) for i in 1:(n - 1))
-        mono = ifelse(y[1] >= y[n], dec, inc) > 0.5
+        if mono === nothing
+            inc = prod(ifelse(y[i] <= y[i + 1], 1.0, 0.0) for i in 1:(n - 1))
+            dec = prod(ifelse(y[i] >= y[i + 1], 1.0, 0.0) for i in 1:(n - 1))
+            mono = ifelse(y[1] >= y[n], dec, inc) > 0.5
+        end
         for i in 1:(n - 1)
-            flat = abs(delta[i]) < 1e-60
-            alpha = d[i] / delta[i]
-            beta = d[i + 1] / delta[i]
-            s = alpha^2 + beta^2
-            di = ifelse(flat, 0.0, ifelse(s > 9, delta[i] * alpha * 3 / sqrt(s), d[i]))
-            dj = ifelse(flat, 0.0, ifelse(s > 9, delta[i] * beta * 3 / sqrt(s), d[i + 1]))
+            if deltaLim === nothing
+                flat = abs(delta[i]) < 1e-60
+                alpha = d[i] / delta[i]
+                beta = d[i + 1] / delta[i]
+                s = alpha^2 + beta^2
+                di = ifelse(flat, 0.0, ifelse(s > 9, delta[i] * alpha * 3 / sqrt(s), d[i]))
+                dj = ifelse(flat, 0.0, ifelse(s > 9, delta[i] * beta * 3 / sqrt(s), d[i + 1]))
+            else
+                s = (d[i]^2 + d[i + 1]^2) / (delta[i]^2 + eps2)
+                tau = 3 / sqrt(smooth_max_upper(s, 9.0; δ = deltaLim))
+                di = d[i] * tau
+                dj = d[i + 1] * tau
+            end
             d[i] = ifelse(mono, di, d[i])
             d[i + 1] = ifelse(mono, dj, d[i + 1])
         end
@@ -110,6 +130,11 @@ function speed_shift(spe, speSet, u)
     return res
 end
 
+function dx_stage_monotonicity(u)
+    y = vcat(0.0, collect(u))
+    return y[1] >= y[end] ? all(diff(y) .<= 0) : all(diff(y) .>= 0)
+end
+
 """
 Wet/dry coil condition of a DX cooling coil (signal level, no air ports).
 
@@ -125,15 +150,32 @@ temperature and resolves the apparatus dew point from UA/cp, the dry coil
 evaluates them at the dry-bulb temperature, and the outputs blend smoothly
 between the two based on X_adp - X_in. UA/cp of each stage is calibrated from
 its nominal values when the model is built.
+
+`if_switching_stage_interpolation` sets how `speed_shift` interpolates the
+capacity and EIR between the stages.
+
+- `false` (default): whether the stage values are monotonic is decided once,
+  from the nominal values of the stages, when the model is built. The limit on
+  the derivatives starts smoothly over `deltaLim` and stays smooth where two
+  stage values cross. The outputs change smoothly with the operating
+  conditions.
+- `true` (MBL behavior): whether the stage values are monotonic is rechecked
+  from the current stage values on every evaluation, and the limit on the
+  derivatives starts sharply. The interpolation switches its form as the
+  operating conditions change, and the outputs can jump or have corners there.
 """
 @mtkmodel DXCoolingCore begin
     @structural_parameters begin
         stages = [dx_stage(Qflow_nominal = -21000.0, COP_nominal = 3.0,
             SHR_nominal = 0.8, mflow_nominal = 1.5)]
+        if_switching_stage_interpolation::Bool = false
+        deltaLim = 1.0
         N = length(stages)
         speSet = [s.spe for s in stages]
         uacp = [dx_uacp(s.Qflow_nominal, s.SHR_nominal, s.mflow_nominal,
             s.TEvaIn_nominal, s.phiIn_nominal, s.p_nominal) for s in stages]
+        mono_Q = dx_stage_monotonicity([s.Qflow_nominal for s in stages])
+        mono_EIR = dx_stage_monotonicity([1 / s.COP_nominal for s in stages])
     end
 
     @parameters begin
@@ -203,10 +245,21 @@ its nominal values when the model is built.
         [dryCap[i].TEvaIn.u ~ T_in.u for i in 1:N]...
         [dryCap[i].mflow.u ~ m_moist for i in 1:N]...
 
-        Q_wet ~ speed_shift(spe, speSet, [wetCap[i].Qflow_ for i in 1:N])
-        EIR_wet ~ speed_shift(spe, speSet, [wetCap[i].EIR_ for i in 1:N])
-        Q_dry ~ speed_shift(spe, speSet, [dryCap[i].Qflow_ for i in 1:N])
-        EIR_dry ~ speed_shift(spe, speSet, [dryCap[i].EIR_ for i in 1:N])
+        if if_switching_stage_interpolation
+            Q_wet ~ speed_shift(spe, speSet, [wetCap[i].Qflow_ for i in 1:N])
+            EIR_wet ~ speed_shift(spe, speSet, [wetCap[i].EIR_ for i in 1:N])
+            Q_dry ~ speed_shift(spe, speSet, [dryCap[i].Qflow_ for i in 1:N])
+            EIR_dry ~ speed_shift(spe, speSet, [dryCap[i].EIR_ for i in 1:N])
+        else
+            Q_wet ~ speed_shift(spe, speSet, [wetCap[i].Qflow_ for i in 1:N];
+                mono = mono_Q, deltaLim = deltaLim)
+            EIR_wet ~ speed_shift(spe, speSet, [wetCap[i].EIR_ for i in 1:N];
+                mono = mono_EIR, deltaLim = deltaLim)
+            Q_dry ~ speed_shift(spe, speSet, [dryCap[i].Qflow_ for i in 1:N];
+                mono = mono_Q, deltaLim = deltaLim)
+            EIR_dry ~ speed_shift(spe, speSet, [dryCap[i].EIR_ for i in 1:N];
+                mono = mono_EIR, deltaLim = deltaLim)
+        end
         UAcp ~ reg_max(speed_shift(spe, speSet, uacp), uacp[end] / 1e3, uacp[end] / 1e4)
 
         mflow_nz ~ reg_max(m_moist, mflow_small, 0.1 * mflow_small)
