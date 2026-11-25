@@ -120,3 +120,35 @@ hline!(p_bot, [0.0]; color = :black, linestyle = :dot, linewidth = 1, label = ""
 fig = plot(p_top, p_bot, layout = grid(2, 1, heights = [0.67, 0.33]), size = (600, 550),
     left_margin = 0mm, right_margin = 3mm)
 display(fig)
+
+zoom_windows = [
+    (hr = (361.0, 373.0), title = "(a) after 3 h of on/off cycling",
+        xlabel = "Time [hr] (Jan 16)"),  # reminder: this date should match the window assigned in hr
+    (hr = (672.0, 684.0), title = "(b) after 73 h of on/off cycling",
+        xlabel = "Time [hr] (Jan 29)"),  # reminder: this date should match the window assigned in hr
+]
+
+p_zoom_panels = map(zoom_windows) do zw
+    zi = findall(t -> zw.hr[1] <= t <= zw.hr[2], t_plot)
+    p = plot(
+        t_plot[zi], df_cmp.Tzone_sim_C[zi];
+        label                   = "This work",
+        title                   = zw.title,
+        xlabel                  = zw.xlabel,
+        ylabel                  = "Temperature [°C]",
+        color                   = :green,
+        linewidth               = 3,
+        legend                  = :topright,
+        background_color_legend = RGBA(1, 1, 1, 0.6),
+    )
+    plot!(p, t_plot[zi], df_cmp.Tzone_mbl_C[zi];
+        label     = "MBL",
+        color     = :blue,
+        linewidth = 1.5,
+        linestyle = :dash,
+    )
+    p
+end
+p_zoom = plot(p_zoom_panels..., layout = (2, 1), size = (600, 600),
+    left_margin = 3mm, right_margin = 3mm)
+display(p_zoom)

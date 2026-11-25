@@ -30,7 +30,7 @@ The package currently includes the following main modules:
 - `BuildingComponents`
   Assembled single-zone SimpleHouse building models.
 - `Disturbances`
-  Weather-file handling, TMYx files, and schedule (occupant/interal heat gain) generation.
+  Weather-file handling, TMYx files, and schedule (occupant/internal heat gain) generation.
 
 ## Verification examples
 
